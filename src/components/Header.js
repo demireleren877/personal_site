@@ -25,12 +25,40 @@ const Header = () => {
       <nav className="nav">
         <div className="nav-brand">
         </div>
+
         <ul className="nav-links">
-          <li><button onClick={() => scrollToSection('about')} className="nav-link">ABOUT</button></li>
-          <li><button onClick={() => scrollToSection('experience')} className="nav-link">EXPERIENCE</button></li>
-          <li><button onClick={() => scrollToSection('education')} className="nav-link">EDUCATION</button></li>
-          <li><button onClick={() => scrollToSection('skills')} className="nav-link">SKILLS</button></li>
-          <li><button onClick={() => scrollToSection('contact')} className="nav-link">CONTACT</button></li>
+          <li>
+            <button
+              className="nav-link"
+              onClick={() => scrollToSection('home')}
+            >
+              Home
+            </button>
+          </li>
+          <li>
+            <button
+              className="nav-link"
+              onClick={() => scrollToSection('experience')}
+            >
+              Experience
+            </button>
+          </li>
+          <li>
+            <button
+              className="nav-link"
+              onClick={() => scrollToSection('skills')}
+            >
+              Skills
+            </button>
+          </li>
+          <li>
+            <button
+              className="nav-link"
+              onClick={() => scrollToSection('contact')}
+            >
+              Contact
+            </button>
+          </li>
         </ul>
       </nav>
     </header>

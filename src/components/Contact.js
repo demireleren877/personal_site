@@ -18,83 +18,99 @@ const Contact = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Form submission logic here
+    // Handle form submission here
     console.log('Form submitted:', formData);
-    // Reset form
-    setFormData({
-      name: '',
-      email: '',
-      subject: '',
-      message: ''
-    });
+    alert('Thank you for your message! I will get back to you soon.');
+    setFormData({ name: '', email: '', subject: '', message: '' });
   };
 
   return (
     <section id="contact" className="contact">
       <div className="container">
         <div className="section-header">
-          <h2 className="section-title">CONTACT</h2>
-          <p className="section-subtitle">Let's work together on your projects</p>
+          <h2 className="section-title">Get In Touch</h2>
+          <p className="section-subtitle">Let's discuss how we can work together</p>
         </div>
-        
+
         <div className="contact-content">
+          <div className="contact-info">
+            <div className="contact-card">
+              <div className="contact-icon">📧</div>
+              <div className="contact-details">
+                <h3>Email</h3>
+                <p>demireleren877@gmail.com</p>
+              </div>
+            </div>
+
+            <div className="contact-card">
+              <div className="contact-icon">📱</div>
+              <div className="contact-details">
+                <h3>Phone</h3>
+                <p>+90 537 287 28 26</p>
+              </div>
+            </div>
+
+            <div className="contact-card">
+              <div className="contact-icon">📍</div>
+              <div className="contact-details">
+                <h3>Location</h3>
+                <p>Istanbul, Turkey</p>
+              </div>
+            </div>
+          </div>
+
           <div className="contact-form-container">
-            <form className="futuristic-form" onSubmit={handleSubmit}>
+            <form className="contact-form" onSubmit={handleSubmit}>
               <div className="form-group">
-                <label htmlFor="name" className="form-label">Name</label>
+                <label htmlFor="name">Name</label>
                 <input
                   type="text"
                   id="name"
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  className="form-input"
                   required
                 />
               </div>
-              
+
               <div className="form-group">
-                <label htmlFor="email" className="form-label">Email</label>
+                <label htmlFor="email">Email</label>
                 <input
                   type="email"
                   id="email"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className="form-input"
                   required
                 />
               </div>
-              
+
               <div className="form-group">
-                <label htmlFor="subject" className="form-label">Subject</label>
+                <label htmlFor="subject">Subject</label>
                 <input
                   type="text"
                   id="subject"
                   name="subject"
                   value={formData.subject}
                   onChange={handleChange}
-                  className="form-input"
                   required
                 />
               </div>
-              
+
               <div className="form-group">
-                <label htmlFor="message" className="form-label">Message</label>
+                <label htmlFor="message">Message</label>
                 <textarea
                   id="message"
                   name="message"
+                  rows="5"
                   value={formData.message}
                   onChange={handleChange}
-                  className="form-textarea"
-                  rows="5"
                   required
                 ></textarea>
               </div>
-              
-              <button type="submit" className="form-submit">
-                <span className="submit-text">Send Message</span>
-                <div className="submit-glow"></div>
+
+              <button type="submit" className="btn btn-primary submit-btn">
+                Send Message
               </button>
             </form>
           </div>

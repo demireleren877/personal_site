@@ -7,13 +7,25 @@ const Experience = () => {
       title: "Actuarial Analyst",
       company: "Eureko Sigorta",
       period: "June 2022 - Present",
-      location: "Istanbul, Turkey",
-      responsibilities: [
-        "Extracting and transforming datasets for International Financial Reporting System (IFRS), performing data cleaning, structuring and validation operations using SAS Enterprise Guide (SAS EG) and SQL",
-        "Automating manual tasks in Microsoft Excel to reduce human error, increase efficiency and ensure consistency, saving an average of 2 working days per project per month",
-        "Preparing interpretable data for actuarial processes and financial reporting, developing end-to-end workflows and creating clear documentation",
-        "Developing a tool to extract discounted cash flows according to IFRS 17 standards, initially with Python, then rewriting with Oracle SQL and Power BI for advanced performance, scalability and integration",
-        "Automating the monthly closing process, developing a Python-based bot to send individual emails to various departments, facilitating communication and saving time"
+      description: "Working as an Actuarial Analyst at Eureko Sigorta, focusing on IFRS data extraction, transformation, and automation of manual processes using SAS Enterprise Guide and SQL.",
+      achievements: [
+        "Extract and transform data sets required by International Financial Reporting System (IFRS) from raw data into desired formats using SAS Enterprise Guide and SQL",
+        "Automate manual Excel tasks, saving an average of 2 workdays per month per project while reducing human error and increasing efficiency",
+        "Prepare interpretable data for actuarial processes and financial reporting, creating comprehensive documentation for all processes",
+        "Developed a tool that extracts discounted cash flows according to IFRS 17 standards and demonstrates the impact of discount curves, initially in Python then optimized with Oracle SQL and Power BI for better performance with large datasets",
+        "Automated monthly closing preparation process by developing a Python-based bot for sending individual emails to various departments, streamlining communication and saving valuable time"
+      ]
+    },
+    {
+      title: ".NET Web Developer",
+      company: "Uyumsoft AŞ",
+      period: "June 2022 - July 2022",
+      description: "Short-term web development project using .NET framework for creating web applications and solutions.",
+      achievements: [
+        "Developed web applications using .NET framework",
+        "Gained hands-on experience in web development technologies",
+        "Contributed to software development projects",
+        "Applied programming skills in a professional environment"
       ]
     }
   ];
@@ -22,50 +34,42 @@ const Experience = () => {
     <section id="experience" className="experience">
       <div className="container">
         <div className="section-header">
-          <h2 className="section-title">EXPERIENCE</h2>
-          <p className="section-subtitle">Important experiences in my professional career</p>
+          <h2 className="section-title">Professional Experience</h2>
         </div>
-        
+
         <div className="experience-timeline">
           {experiences.map((exp, index) => (
             <div key={index} className="timeline-item">
               <div className="timeline-marker">
                 <div className="marker-dot"></div>
-                <div className="marker-line"></div>
+                {index < experiences.length - 1 && <div className="marker-line"></div>}
               </div>
-              
+
               <div className="timeline-content">
-                <div className="experience-header">
-                  <h3 className="experience-title">{exp.title}</h3>
-                  <div className="experience-company">{exp.company}</div>
-                  <div className="experience-meta">
-                    <span className="experience-period">{exp.period}</span>
-                    <span className="experience-location">{exp.location}</span>
+                <div className="experience-card">
+                  <div className="experience-header">
+                    <h3 className="experience-title">{exp.title}</h3>
+                    <div className="experience-company">{exp.company}</div>
+                    <div className="experience-period">{exp.period}</div>
                   </div>
-                </div>
-                
-                <div className="experience-description">
-                  <ul className="responsibilities-list">
-                    {exp.responsibilities.map((responsibility, idx) => (
-                      <li key={idx} className="responsibility-item">
-                        {responsibility}
-                      </li>
-                    ))}
-                  </ul>
+
+                  <p className="experience-description">{exp.description}</p>
+
+                  <div className="experience-achievements">
+                    <h4 className="achievements-title">Key Achievements:</h4>
+                    <ul className="achievements-list">
+                      {exp.achievements.map((achievement, idx) => (
+                        <li key={idx} className="achievement-item">
+                          <span className="achievement-icon">✓</span>
+                          {achievement}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
               </div>
             </div>
           ))}
-        </div>
-        
-        <div className="achievement-highlight">
-          <div className="achievement-content">
-            <div className="achievement-icon">🏆</div>
-            <div className="achievement-text">
-              <h3>Data Academy Program</h3>
-              <p>I successfully completed the Data Academy program organized by Eureko Sigorta, completing a comprehensive training process including project preparation and presentation phases.</p>
-            </div>
-          </div>
         </div>
       </div>
     </section>
