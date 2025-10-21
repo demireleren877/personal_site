@@ -35,7 +35,6 @@ const Education = () => {
       <div className="container">
         <div className="section-header">
           <h2 className="section-title">Education & Certifications</h2>
-          <p className="section-subtitle">My academic background and professional development</p>
         </div>
 
         <div className="education-timeline">

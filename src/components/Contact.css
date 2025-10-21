@@ -36,9 +36,8 @@
 }
 
 .contact-content {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4rem;
+  display: flex;
+  justify-content: center;
   align-items: start;
 }
 
@@ -96,6 +95,8 @@
   padding: 2rem;
   box-shadow: var(--shadow-md);
   border: 1px solid var(--gray-200);
+  max-width: 600px;
+  width: 100%;
 }
 
 .contact-form {

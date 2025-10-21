@@ -29,36 +29,9 @@ const Contact = () => {
       <div className="container">
         <div className="section-header">
           <h2 className="section-title">Get In Touch</h2>
-          <p className="section-subtitle">Let's discuss how we can work together</p>
         </div>
 
         <div className="contact-content">
-          <div className="contact-info">
-            <div className="contact-card">
-              <div className="contact-icon">📧</div>
-              <div className="contact-details">
-                <h3>Email</h3>
-                <p>demireleren877@gmail.com</p>
-              </div>
-            </div>
-
-            <div className="contact-card">
-              <div className="contact-icon">📱</div>
-              <div className="contact-details">
-                <h3>Phone</h3>
-                <p>+90 537 287 28 26</p>
-              </div>
-            </div>
-
-            <div className="contact-card">
-              <div className="contact-icon">📍</div>
-              <div className="contact-details">
-                <h3>Location</h3>
-                <p>Istanbul, Turkey</p>
-              </div>
-            </div>
-          </div>
-
           <div className="contact-form-container">
             <form className="contact-form" onSubmit={handleSubmit}>
               <div className="form-group">
