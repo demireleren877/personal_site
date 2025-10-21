@@ -1,0 +1,234 @@
+.skills {
+  padding: 100px 0;
+  background: var(--neon-blue-bg);
+  position: relative;
+}
+
+.skills::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
+}
+
+.skills::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
+  opacity: 0.5;
+}
+
+.skills-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4rem;
+}
+
+.skills-section {
+  animation: fadeInUp 0.8s ease-out;
+}
+
+.skills-section-title {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 2rem;
+  text-align: center;
+  position: relative;
+}
+
+.skills-section-title::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 2px;
+  background: linear-gradient(135deg, var(--neon-blue) 0%, var(--neon-blue-dark) 100%);
+  border-radius: 1px;
+}
+
+.competencies-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.competency-card {
+  background: var(--neon-blue-bg);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--neon-blue-border);
+  border-radius: 16px;
+  padding: 2rem;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.competency-card:focus {
+  border-color: var(--neon-blue) !important;
+  box-shadow: 0 0 0 2px rgba(0, 180, 216, 0.3);
+}
+
+.competency-card:hover {
+  transform: translateY(-5px);
+  border-color: var(--neon-blue);
+}
+
+.competency-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.competency-name {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--neon-blue);
+}
+
+.tools-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.tool-card {
+  background: var(--neon-blue-bg);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--neon-blue-border);
+  border-radius: 16px;
+  padding: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.tool-card:focus {
+  border-color: var(--neon-blue) !important;
+  box-shadow: 0 0 0 2px rgba(0, 180, 216, 0.3);
+}
+
+.tool-card:hover {
+  transform: translateY(-5px);
+  border-color: var(--neon-blue);
+}
+
+.tool-icon {
+  width: 60px;
+  height: 60px;
+  background: var(--neon-blue-bg);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--neon-blue);
+  transition: all 0.3s ease;
+}
+
+.tool-svg {
+  width: 32px;
+  height: 32px;
+  transition: all 0.3s ease;
+}
+
+.tool-card:hover .tool-svg {
+  transform: scale(1.1);
+  color: var(--neon-blue-light);
+}
+
+.tool-info {
+  flex: 1;
+}
+
+.tool-name {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #e5e5e5;
+  margin-bottom: 0.3rem;
+}
+
+.tool-category {
+  font-size: 0.9rem;
+  color: #b0b0b0;
+}
+
+.languages-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.language-card {
+  background: var(--neon-blue-bg);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--neon-blue-border);
+  border-radius: 16px;
+  padding: 2rem;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.language-card:focus {
+  border-color: var(--neon-blue) !important;
+  box-shadow: 0 0 0 2px rgba(0, 180, 216, 0.3);
+}
+
+.language-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--neon-blue);
+}
+
+.language-name {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #e5e5e5;
+  margin-bottom: 0.5rem;
+}
+
+.language-level {
+  font-size: 0.9rem;
+  color: var(--neon-blue);
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .skills {
+    padding: 60px 0;
+  }
+  
+  .skills-content {
+    gap: 3rem;
+  }
+  
+  .competencies-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .tools-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .tool-card {
+    flex-direction: column;
+    text-align: center;
+    gap: 1rem;
+  }
+  
+  .languages-grid {
+    grid-template-columns: 1fr;
+    max-width: 300px;
+  }
+}

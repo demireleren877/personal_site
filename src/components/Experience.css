@@ -1,0 +1,220 @@
+.experience {
+  padding: 100px 0;
+  background: var(--neon-blue-bg);
+  position: relative;
+}
+
+.experience::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
+}
+
+.experience::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
+  opacity: 0.5;
+}
+
+.experience-timeline {
+  position: relative;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.timeline-item {
+  position: relative;
+  margin-bottom: 3rem;
+  animation: fadeInUp 0.8s ease-out;
+}
+
+.timeline-marker {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 20px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.marker-dot {
+  width: 16px;
+  height: 16px;
+  background: linear-gradient(135deg, var(--neon-blue) 0%, var(--neon-blue-dark) 100%);
+  border-radius: 50%;
+  border: 3px solid var(--darker-gray);
+  z-index: 2;
+  position: relative;
+}
+
+.marker-line {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: calc(100% + 2rem);
+  background: linear-gradient(to bottom, var(--neon-blue), var(--neon-blue-dark));
+  z-index: 1;
+}
+
+.timeline-item:last-child .marker-line {
+  display: none;
+}
+
+.timeline-content {
+  margin-left: 3rem;
+  background: var(--neon-blue-bg);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--neon-blue-border);
+  border-radius: 16px;
+  padding: 2rem;
+  transition: all 0.3s ease;
+}
+
+.timeline-content:hover {
+  transform: translateY(-5px);
+  border-color: var(--neon-blue);
+}
+
+.experience-header {
+  margin-bottom: 1.5rem;
+}
+
+.experience-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.experience-company {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--neon-blue);
+  margin-bottom: 0.5rem;
+}
+
+.experience-meta {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.experience-period,
+.experience-location {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  background: var(--neon-blue-bg);
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  border: 1px solid var(--neon-blue-border);
+}
+
+.responsibilities-list {
+  list-style: none;
+  padding: 0;
+}
+
+.responsibility-item {
+  position: relative;
+  padding-left: 1.5rem;
+  margin-bottom: 1rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.responsibility-item::before {
+  content: '▶';
+  position: absolute;
+  left: 0;
+  color: var(--neon-blue);
+  font-size: 0.8rem;
+}
+
+.achievement-highlight {
+  margin-top: 4rem;
+  background: linear-gradient(135deg, var(--neon-blue-bg) 0%, rgba(0, 180, 216, 0.1) 100%);
+  border: 1px solid var(--neon-blue-border);
+  border-radius: 20px;
+  padding: 2rem;
+  animation: fadeInUp 0.8s ease-out 0.4s both;
+}
+
+.achievement-content {
+  display: flex;
+  gap: 2rem;
+  align-items: center;
+}
+
+.achievement-icon {
+  font-size: 3rem;
+  flex-shrink: 0;
+}
+
+.achievement-text h3 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.achievement-text p {
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+@media (max-width: 768px) {
+  .experience {
+    padding: 60px 0;
+  }
+  
+  .timeline-content {
+    margin-left: 2rem;
+    padding: 1.5rem;
+  }
+  
+  .timeline-marker {
+    width: 15px;
+  }
+  
+  .marker-dot {
+    width: 12px;
+    height: 12px;
+  }
+  
+  .experience-title {
+    font-size: 1.3rem;
+  }
+  
+  .experience-company {
+    font-size: 1.1rem;
+  }
+  
+  .experience-meta {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .achievement-content {
+    flex-direction: column;
+    text-align: center;
+    gap: 1rem;
+  }
+  
+  .achievement-icon {
+    font-size: 2.5rem;
+  }
+}
