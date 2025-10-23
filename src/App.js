@@ -19,7 +19,7 @@ function App() {
         <Route path="/auth" element={<SaasApp />} />
         <Route path="/auth/*" element={<SaasApp />} />
         <Route path="/dashboard/*" element={<SaasApp />} />
-        
+
         {/* Main Site Route */}
         <Route path="/" element={
           <div className="App">
@@ -33,7 +33,7 @@ function App() {
             </main>
           </div>
         } />
-        
+
         {/* Catch all route for main site */}
         <Route path="*" element={
           <div className="App">

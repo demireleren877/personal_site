@@ -1,5 +1,5 @@
 // API service for fetching data from Cloudflare D1
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://personal-site-saas-api.l5819033.workers.dev';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://personal-site-api.l5819033.workers.dev';
 
 class ApiService {
     async fetchData(endpoint) {
