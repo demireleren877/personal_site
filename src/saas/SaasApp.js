@@ -56,25 +56,20 @@ const SaasApp = () => {
 
     // Simple subdomain check
     let subdomain = null;
-    
+
     // Check for test subdomain parameter (localhost testing)
     if (testSubdomain) {
         subdomain = testSubdomain;
         console.log('SaasApp - Using test subdomain:', subdomain);
     }
     // Check for real subdomain (not localhost)
-    else if (hostname.includes('.') && 
-             !hostname.includes('localhost') && 
-             !hostname.includes('127.0.0.1') &&
-             !hostname.includes('erendemirel.com.tr') &&
-             hostname.split('.').length > 2) {
+    else if (hostname.includes('.') &&
+        !hostname.includes('localhost') &&
+        !hostname.includes('127.0.0.1') &&
+        hostname.split('.').length > 2) {
         subdomain = hostname.split('.')[0];
         console.log('SaasApp - Using real subdomain:', subdomain);
     }
-    
-    console.log('SaasApp - Final subdomain:', subdomain);
-    console.log('SaasApp - hostname.split("."):', hostname.split('.'));
-    console.log('SaasApp - hostname.split(".").length:', hostname.split('.').length);
 
     if (subdomain && subdomain !== 'www' && subdomain !== 'app' && subdomain !== 'erendemirel') {
         console.log('SaasApp - rendering SubdomainSite for:', subdomain);
@@ -83,17 +78,17 @@ const SaasApp = () => {
 
     // Check current path
     const currentPath = window.location.pathname;
-    
+
     // If user is logged in and on dashboard path, show dashboard
     if (user && currentPath === '/dashboard') {
         return <Dashboard />;
     }
-    
+
     // If on auth path, show auth
     if (currentPath === '/auth') {
         return <Auth />;
     }
-    
+
     // Otherwise show main site
     return (
         <div className="App">
