@@ -11,7 +11,6 @@ import Contact from '../components/Contact';
 import './SaasApp.css';
 
 const SaasApp = () => {
-    const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -19,18 +18,6 @@ const SaasApp = () => {
     }, []);
 
     const checkAuthStatus = () => {
-        const token = localStorage.getItem('token');
-        const userData = localStorage.getItem('user');
-
-        if (token && userData) {
-            try {
-                setUser(JSON.parse(userData));
-            } catch (error) {
-                console.error('Error parsing user data:', error);
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
-            }
-        }
         setLoading(false);
     };
 
