@@ -71,6 +71,10 @@ const SaasApp = () => {
         subdomain = hostname.split('.')[0];
         console.log('SaasApp - Using real subdomain:', subdomain);
     }
+    
+    console.log('SaasApp - Final subdomain:', subdomain);
+    console.log('SaasApp - hostname.split("."):', hostname.split('.'));
+    console.log('SaasApp - hostname.split(".").length:', hostname.split('.').length);
 
     if (subdomain && subdomain !== 'www' && subdomain !== 'app' && subdomain !== 'erendemirel') {
         console.log('SaasApp - rendering SubdomainSite for:', subdomain);
