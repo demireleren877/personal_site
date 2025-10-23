@@ -1,5 +1,5 @@
 // API service for fetching data from Cloudflare D1
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://personal-site-api.l5819033.workers.dev';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://personal-site-saas-api.l5819033.workers.dev';
 
 class ApiService {
     async fetchData(endpoint) {
@@ -36,20 +36,23 @@ class ApiService {
 
     // Hero data
     async getHeroData() {
-        // Geçici olarak API'yi devre dışı bırak
-        console.log('Using fallback hero data');
-        return {
-            id: 1,
-            name: "Eren Demirel",
-            title: "Actuarial Analyst",
-            description: "I'm passionate about transforming data into actionable insights and driving innovation in the insurance sector.",
-            birth_year: 2001,
-            location: "Istanbul",
-            current_job: "Actuarial Analyst at Eureko Sigorta",
-            github_url: "https://github.com/demireleren877",
-            linkedin_url: "https://linkedin.com/in/demireleren877",
-            cv_url: "/cv.pdf"
-        };
+        try {
+            return await this.fetchData('/api/site/demo-user/hero');
+        } catch (error) {
+            console.error('API Error, using fallback hero data:', error);
+            return {
+                id: 1,
+                name: "Eren Demirel",
+                title: "Actuarial Analyst",
+                description: "I'm passionate about transforming data into actionable insights and driving innovation in the insurance sector.",
+                birth_year: 2001,
+                location: "Istanbul",
+                current_job: "Actuarial Analyst at Eureko Sigorta",
+                github_url: "https://github.com/demireleren877",
+                linkedin_url: "https://linkedin.com/in/demireleren877",
+                cv_url: "/cv.pdf"
+            };
+        }
     }
 
     // About data
@@ -82,7 +85,7 @@ class ApiService {
     // Experiences
     async getExperiences() {
         try {
-            return await this.fetchData('/api/experiences');
+            return await this.fetchData('/api/site/demo-user/experiences');
         } catch (error) {
             console.error('API Error, using fallback data:', error);
             return [];
@@ -92,7 +95,7 @@ class ApiService {
     // Education
     async getEducation() {
         try {
-            return await this.fetchData('/api/education');
+            return await this.fetchData('/api/site/demo-user/education');
         } catch (error) {
             console.error('API Error, using fallback data:', error);
             return [];
@@ -102,7 +105,7 @@ class ApiService {
     // Competencies
     async getCompetencies() {
         try {
-            return await this.fetchData('/api/competencies');
+            return await this.fetchData('/api/site/demo-user/competencies');
         } catch (error) {
             console.error('API Error, using fallback data:', error);
             return [];
@@ -112,7 +115,7 @@ class ApiService {
     // Tools
     async getTools() {
         try {
-            return await this.fetchData('/api/tools');
+            return await this.fetchData('/api/site/demo-user/tools');
         } catch (error) {
             console.error('API Error, using fallback data:', error);
             return [];
@@ -122,7 +125,7 @@ class ApiService {
     // Languages
     async getLanguages() {
         try {
-            return await this.fetchData('/api/languages');
+            return await this.fetchData('/api/site/demo-user/languages');
         } catch (error) {
             console.error('API Error, using fallback data:', error);
             return [];
