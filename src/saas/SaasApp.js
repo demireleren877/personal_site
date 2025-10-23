@@ -43,18 +43,33 @@ const SaasApp = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const testSubdomain = urlParams.get('subdomain');
 
-    // Only treat as subdomain if it's a real subdomain (not the main domain)
-    const isSubdomain = hostname.includes('.') &&
-        !hostname.includes('localhost') &&
-        !hostname.includes('127.0.0.1') &&
-        !hostname.includes('erendemirel.com.tr') && // Main domain
-        hostname.split('.').length > 2; // Real subdomain
+    console.log('SaasApp - hostname:', hostname);
+    console.log('SaasApp - testSubdomain:', testSubdomain);
+    console.log('SaasApp - window.location.search:', window.location.search);
+    console.log('SaasApp - window.location.href:', window.location.href);
+    console.log('SaasApp - urlParams.toString():', urlParams.toString());
 
-    if (isSubdomain || testSubdomain) {
-        const subdomain = testSubdomain || hostname.split('.')[0];
-        if (subdomain !== 'www' && subdomain !== 'app' && subdomain !== 'erendemirel') {
-            return <SubdomainSite subdomain={subdomain} />;
-        }
+    // Simple subdomain check
+    let subdomain = null;
+    
+    // Check for test subdomain parameter (localhost testing)
+    if (testSubdomain) {
+        subdomain = testSubdomain;
+        console.log('SaasApp - Using test subdomain:', subdomain);
+    }
+    // Check for real subdomain (not localhost)
+    else if (hostname.includes('.') && 
+             !hostname.includes('localhost') && 
+             !hostname.includes('127.0.0.1') &&
+             !hostname.includes('erendemirel.com.tr') &&
+             hostname.split('.').length > 2) {
+        subdomain = hostname.split('.')[0];
+        console.log('SaasApp - Using real subdomain:', subdomain);
+    }
+
+    if (subdomain && subdomain !== 'www' && subdomain !== 'app' && subdomain !== 'erendemirel') {
+        console.log('SaasApp - rendering SubdomainSite for:', subdomain);
+        return <SubdomainSite subdomain={subdomain} />;
     }
 
     return (
