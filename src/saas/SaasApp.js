@@ -29,11 +29,16 @@ const SaasApp = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const testSubdomain = urlParams.get('subdomain');
 
-    const isSubdomain = hostname.includes('.') && !hostname.includes('localhost') && !hostname.includes('127.0.0.1');
+    // Only treat as subdomain if it's a real subdomain (not the main domain)
+    const isSubdomain = hostname.includes('.') && 
+                       !hostname.includes('localhost') && 
+                       !hostname.includes('127.0.0.1') &&
+                       !hostname.includes('erendemirel.com.tr') && // Main domain
+                       hostname.split('.').length > 2; // Real subdomain
 
     if (isSubdomain || testSubdomain) {
         const subdomain = testSubdomain || hostname.split('.')[0];
-        if (subdomain !== 'www' && subdomain !== 'app') {
+        if (subdomain !== 'www' && subdomain !== 'app' && subdomain !== 'erendemirel') {
             return <SubdomainSite subdomain={subdomain} />;
         }
     }
