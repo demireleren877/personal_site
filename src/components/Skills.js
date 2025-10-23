@@ -1,85 +1,78 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import './Skills.css';
-// SVG dosyalarını import etmeye gerek yok, public klasöründen doğrudan kullanacağız
+import apiService from '../services/api';
 
 const Skills = () => {
-  const competencies = [
-    {
-      name: "Business Development",
-      icon: <img src="/icons/business-development.png" alt="Business Development" className="competency-icon" />
-    },
-    {
-      name: "Analytical Thinking",
-      icon: <img src="/icons/analytical-thinking.png" alt="Analytical Thinking" className="competency-icon" />
-    },
-    {
-      name: "Problem Solving",
-      icon: <img src="/icons/problem-solving.png" alt="Problem Solving" className="competency-icon" />
-    },
-    {
-      name: "Data Analysis",
-      icon: <img src="/icons/data-analysis.png" alt="Data Analysis" className="competency-icon" />
-    },
-    {
-      name: "Project Management",
-      icon: <img src="/icons/project-management.png" alt="Project Management" className="competency-icon" />
-    },
-    {
-      name: "Strategic Planning",
-      icon: <img src="/icons/strategic-planning.png" alt="Strategic Planning" className="competency-icon" />
-    }
-  ];
+  const [competencies, setCompetencies] = useState([]);
+  const [tools, setTools] = useState([]);
+  const [languages, setLanguages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const tools = [
-    {
-      name: "Python",
-      category: "Process Automation & Data Analysis",
-      icon: <img src="/icons/python-svgrepo-com.svg" alt="Python" className="tool-icon" />
-    },
-    {
-      name: "Excel",
-      category: "Data Analysis & Reporting",
-      icon: <img src="/icons/excel-svgrepo-com.svg" alt="Excel" className="tool-icon" />
-    },
-    {
-      name: "SAS EG",
-      category: "Data Processing",
-      icon: <img src="/icons/sas-logo-horiz.svg" alt="SAS EG" className="tool-icon" />
-    },
-    {
-      name: "Oracle SQL",
-      category: "Database Management",
-      icon: <img src="/icons/sql-svgrepo-com.svg" alt="Oracle SQL" className="tool-icon" />
-    },
-    {
-      name: "Power BI",
-      category: "Data Visualization",
-      icon: <img src="/icons/New_Power_BI_Logo.svg" alt="Power BI" className="tool-icon" />
-    },
-    {
-      name: "Flutter",
-      category: "Mobile Development",
-      icon: <img src="/icons/flutter-svgrepo-com.svg" alt="Flutter" className="tool-icon" />
-    }
-  ];
+  useEffect(() => {
+    const fetchSkillsData = async () => {
+      try {
+        setLoading(true);
+        const [competenciesData, toolsData, languagesData] = await Promise.all([
+          apiService.getCompetencies(),
+          apiService.getTools(),
+          apiService.getLanguages()
+        ]);
 
-  const languages = [
-    {
-      name: "Turkish",
-      level: "Native",
-      flag: "🇹🇷"
-    },
-    {
-      name: "English",
-      level: "Advanced",
-      flag: "🇬🇧"
-    }
-  ];
+        setCompetencies(competenciesData);
+        setTools(toolsData);
+        setLanguages(languagesData);
+      } catch (err) {
+        setError(err.message);
+        console.error('Error fetching skills data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSkillsData();
+  }, []);
+
+  if (loading) {
+    return (
+      <section id="skills" className="skills">
+        <div className="container">
+          <div className="skills-content">
+            <div className="loading-skeleton">
+              <div className="skeleton-section">
+                <div className="skeleton-title"></div>
+                <div className="skeleton-grid"></div>
+              </div>
+              <div className="skeleton-section">
+                <div className="skeleton-title"></div>
+                <div className="skeleton-grid"></div>
+              </div>
+              <div className="skeleton-section">
+                <div className="skeleton-title"></div>
+                <div className="skeleton-grid"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section id="skills" className="skills">
+        <div className="container">
+          <div className="skills-content">
+            <p>Error loading skills data. Please try again later.</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section id="skills" className="skills">
       <div className="container">
-
         <div className="skills-content">
           <div className="skills-section">
             <h3 className="skills-section-title">COMPETENCIES</h3>
@@ -87,7 +80,9 @@ const Skills = () => {
               {competencies.map((competency, index) => (
                 <div key={index} className="competency-card">
                   <div className="competency-content">
-                    <div className="competency-icon">{competency.icon}</div>
+                    <div className="competency-icon">
+                      <img src={competency.icon_url} alt={competency.name} className="competency-icon" />
+                    </div>
                     <span className="competency-name">{competency.name}</span>
                   </div>
                 </div>
@@ -100,7 +95,9 @@ const Skills = () => {
             <div className="tools-grid">
               {tools.map((tool, index) => (
                 <div key={index} className="tool-card">
-                  <div className="tool-icon">{tool.icon}</div>
+                  <div className="tool-icon">
+                    <img src={tool.icon_url} alt={tool.name} className="tool-icon" />
+                  </div>
                   <div className="tool-info">
                     <h4 className="tool-name">{tool.name}</h4>
                     <p className="tool-category">{tool.category}</p>
@@ -115,7 +112,7 @@ const Skills = () => {
             <div className="languages-grid">
               {languages.map((language, index) => (
                 <div key={index} className="language-card">
-                  <div className="language-flag">{language.flag}</div>
+                  <div className="language-flag">{language.flag_emoji}</div>
                   <div className="language-info">
                     <div className="language-name">{language.name}</div>
                     <div className="language-level">{language.level}</div>
