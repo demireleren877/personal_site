@@ -79,8 +79,8 @@ const SaasApp = () => {
     // Check current path
     const currentPath = window.location.pathname;
 
-    // If user is logged in and on dashboard path, show dashboard
-    if (user && currentPath === '/dashboard') {
+    // If on dashboard path, show dashboard
+    if (currentPath === '/dashboard') {
         return <Dashboard />;
     }
 
