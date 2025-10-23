@@ -23,8 +23,6 @@ const Auth = () => {
         e.preventDefault();
         setLoading(true);
         setError('');
-        
-        console.log('Form submitted:', { isLogin, formData });
 
         try {
             if (!isLogin) {
@@ -51,7 +49,6 @@ const Auth = () => {
                     const data = await response.json();
                     localStorage.setItem('user', JSON.stringify(data.user));
                     localStorage.setItem('token', data.token);
-                    console.log('Register successful, redirecting to dashboard');
                     window.location.href = '/dashboard';
                 } else {
                     const errorData = await response.json();
@@ -59,8 +56,6 @@ const Auth = () => {
                 }
             } else {
                 // Giriş yap
-                console.log('Attempting login with:', { email: formData.email, password: formData.password });
-                
                 const response = await fetch('https://personal-site-saas-api.l5819033.workers.dev/api/auth/login', {
                     method: 'POST',
                     headers: {
@@ -72,17 +67,14 @@ const Auth = () => {
                     })
                 });
 
-                console.log('Login response status:', response.status);
-                const responseData = await response.json();
-                console.log('Login response data:', responseData);
-
                 if (response.ok) {
-                    localStorage.setItem('user', JSON.stringify(responseData.user));
-                    localStorage.setItem('token', responseData.token);
-                    console.log('Login successful, redirecting to dashboard');
+                    const data = await response.json();
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    localStorage.setItem('token', data.token);
                     window.location.href = '/dashboard';
                 } else {
-                    setError(responseData.message || 'Giriş yaparken hata oluştu');
+                    const errorData = await response.json();
+                    setError(errorData.message || 'Giriş yaparken hata oluştu');
                 }
             }
         } catch (error) {
