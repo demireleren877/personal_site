@@ -90,7 +90,10 @@ const Dashboard = () => {
         }
     };
 
+    console.log('Dashboard render - loading:', loading, 'user:', user);
+
     if (loading) {
+        console.log('Dashboard showing loading state');
         return (
             <div className="dashboard-loading">
                 <div className="loading-spinner"></div>
@@ -99,7 +102,13 @@ const Dashboard = () => {
         );
     }
 
+    console.log('Dashboard rendering main content');
     return (
+        <div style={{ padding: '20px', background: 'lightblue', minHeight: '100vh' }}>
+            <h1>DASHBOARD ÇALIŞIYOR!</h1>
+            <p>User: {user?.name}</p>
+            <p>Email: {user?.email}</p>
+        </div>
         <div className="simple-dashboard">
             <div className="dashboard-header">
                 <h1>Dashboard</h1>

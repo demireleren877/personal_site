@@ -57,12 +57,20 @@ const SaasApp = () => {
         }
     }
 
+    // Check if user is logged in from localStorage
+    const token = localStorage.getItem('token');
+    const userData = localStorage.getItem('user');
+    const isLoggedIn = token && userData;
+
+    console.log('SaasApp render - isLoggedIn:', isLoggedIn, 'user state:', user);
+    console.log('Current path:', window.location.pathname);
+
     return (
         <div className="saas-app">
             <Routes>
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/dashboard" element={
-                    user ? <Dashboard /> : <Auth />
+                    isLoggedIn ? <Dashboard /> : <Auth />
                 } />
                 <Route path="*" element={<Auth />} />
             </Routes>

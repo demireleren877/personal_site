@@ -51,6 +51,7 @@ const Auth = () => {
                     const data = await response.json();
                     localStorage.setItem('user', JSON.stringify(data.user));
                     localStorage.setItem('token', data.token);
+                    console.log('Register successful, redirecting to dashboard');
                     window.location.href = '/dashboard';
                 } else {
                     const errorData = await response.json();
