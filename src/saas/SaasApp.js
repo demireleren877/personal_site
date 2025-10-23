@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import Auth from './Auth';
 import Dashboard from './Dashboard';
 import SubdomainSite from './SubdomainSite';
@@ -8,7 +8,6 @@ import './SaasApp.css';
 const SaasApp = () => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
-    const location = useLocation();
 
     useEffect(() => {
         checkAuthStatus();
@@ -43,9 +42,9 @@ const SaasApp = () => {
     const hostname = window.location.hostname;
     const urlParams = new URLSearchParams(window.location.search);
     const testSubdomain = urlParams.get('subdomain');
-    
+
     const isSubdomain = hostname.includes('.') && !hostname.includes('localhost') && !hostname.includes('127.0.0.1');
-    
+
     if (isSubdomain || testSubdomain) {
         const subdomain = testSubdomain || hostname.split('.')[0];
         if (subdomain !== 'www' && subdomain !== 'app') {
