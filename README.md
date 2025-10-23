@@ -59,20 +59,49 @@ REACT_APP_API_URL=https://your-worker.your-subdomain.workers.dev
 ### 6. Wrangler konfigürasyonunu güncelleyin
 `wrangler.toml` dosyasındaki `database_id` değerini güncelleyin.
 
-## 🚀 Deployment
+## 🚀 Development
 
-### 1. Cloudflare Worker'ı deploy edin
+### Frontend Development
 ```bash
+# React uygulamasını başlatın
+npm start
+
+# Browser'da http://localhost:3000 adresine gidin
+```
+
+### Worker Development
+```bash
+# Worker'ı deploy edin
+npm run deploy:worker
+
+# Worker loglarını izleyin
+wrangler tail
+```
+
+## 🏗️ Build ve Deploy
+
+### 1. Frontend Build
+```bash
+# React uygulamasını build edin
+npm run build
+
+# Build dosyalarını test edin
+npx serve -s build
+```
+
+### 2. Worker Deploy
+```bash
+# Worker'ı deploy edin
 npm run deploy:worker
 ```
 
-### 2. React uygulamasını build edin
+### 3. Production Deploy
 ```bash
+# React uygulamasını build edin
 npm run build
-```
 
-### 3. Build dosyalarını Cloudflare Pages'e deploy edin
-Cloudflare Pages dashboard'undan build klasörünü deploy edin.
+# Build klasörünü Cloudflare Pages'e deploy edin
+```
 
 ## 📊 Veritabanı Yapısı
 

@@ -11,11 +11,13 @@ const Hero = () => {
     const fetchHeroData = async () => {
       try {
         setLoading(true);
+        console.log('Fetching hero data...');
         const data = await apiService.getHeroData();
+        console.log('Hero data received:', data);
         setHeroData(data);
       } catch (err) {
-        setError(err.message);
         console.error('Error fetching hero data:', err);
+        setError(err.message);
       } finally {
         setLoading(false);
       }

@@ -1,5 +1,5 @@
 // API service for fetching data from Cloudflare D1
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://your-worker.your-subdomain.workers.dev';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://personal-site-api.l5819033.workers.dev';
 
 class ApiService {
     async fetchData(endpoint) {
@@ -36,37 +36,97 @@ class ApiService {
 
     // Hero data
     async getHeroData() {
-        return this.fetchData('/api/hero');
+        // Geçici olarak API'yi devre dışı bırak
+        console.log('Using fallback hero data');
+        return {
+            id: 1,
+            name: "Eren Demirel",
+            title: "Actuarial Analyst",
+            description: "I'm passionate about transforming data into actionable insights and driving innovation in the insurance sector.",
+            birth_year: 2001,
+            location: "Istanbul",
+            current_job: "Actuarial Analyst at Eureko Sigorta",
+            github_url: "https://github.com/demireleren877",
+            linkedin_url: "https://linkedin.com/in/demireleren877",
+            cv_url: "/cv.pdf"
+        };
     }
 
     // About data
     async getAboutData() {
-        return this.fetchData('/api/about');
+        console.log('Using fallback about data');
+        return {
+            id: 1,
+            title: "About Me",
+            description: "I am a dedicated Business Development and Data Analysis professional with a strong passion for transforming complex data into actionable insights.",
+            highlights: [
+                {
+                    icon: "🎯",
+                    title: "Strategic Thinking",
+                    description: "Developing comprehensive business strategies that align with organizational goals and market opportunities."
+                },
+                {
+                    icon: "📊",
+                    title: "Data Analysis",
+                    description: "Transforming raw data into meaningful insights using advanced analytical tools and methodologies."
+                },
+                {
+                    icon: "⚡",
+                    title: "Process Automation",
+                    description: "Streamlining business processes through innovative automation solutions and technology integration."
+                }
+            ]
+        };
     }
 
     // Experiences
     async getExperiences() {
-        return this.fetchData('/api/experiences');
+        try {
+            return await this.fetchData('/api/experiences');
+        } catch (error) {
+            console.error('API Error, using fallback data:', error);
+            return [];
+        }
     }
 
     // Education
     async getEducation() {
-        return this.fetchData('/api/education');
+        try {
+            return await this.fetchData('/api/education');
+        } catch (error) {
+            console.error('API Error, using fallback data:', error);
+            return [];
+        }
     }
 
     // Competencies
     async getCompetencies() {
-        return this.fetchData('/api/competencies');
+        try {
+            return await this.fetchData('/api/competencies');
+        } catch (error) {
+            console.error('API Error, using fallback data:', error);
+            return [];
+        }
     }
 
     // Tools
     async getTools() {
-        return this.fetchData('/api/tools');
+        try {
+            return await this.fetchData('/api/tools');
+        } catch (error) {
+            console.error('API Error, using fallback data:', error);
+            return [];
+        }
     }
 
     // Languages
     async getLanguages() {
-        return this.fetchData('/api/languages');
+        try {
+            return await this.fetchData('/api/languages');
+        } catch (error) {
+            console.error('API Error, using fallback data:', error);
+            return [];
+        }
     }
 
     // Contact form submission

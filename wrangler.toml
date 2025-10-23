@@ -1,5 +1,5 @@
 name = "personal-site-api"
-main = "src/index.js"
+main = "worker/index.js"
 compatibility_date = "2024-01-01"
 
 [[d1_databases]]
@@ -9,5 +9,5 @@ database_id = "bd8fb0cf-bbb1-44de-9be5-a1a2b20569a8"
 
 [env.production]
 d1_databases = [
-  { binding = "DB", database_name = "personal-site-db", database_id = "your-database-id-here" }
+  { binding = "DB", database_name = "personal-site-db", database_id = "bd8fb0cf-bbb1-44de-9be5-a1a2b20569a8"}
 ]
