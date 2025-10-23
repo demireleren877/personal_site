@@ -3,6 +3,12 @@ import { Routes, Route } from 'react-router-dom';
 import Auth from './Auth';
 import Dashboard from './Dashboard';
 import SubdomainSite from './SubdomainSite';
+import Header from '../components/Header';
+import Hero from '../components/Hero';
+import Experience from '../components/Experience';
+import Education from '../components/Education';
+import Skills from '../components/Skills';
+import Contact from '../components/Contact';
 import './SaasApp.css';
 
 const SaasApp = () => {
@@ -72,17 +78,30 @@ const SaasApp = () => {
         return <SubdomainSite subdomain={subdomain} />;
     }
 
+    // Check current path
+    const currentPath = window.location.pathname;
+    
+    // If user is logged in and on dashboard path, show dashboard
+    if (user && currentPath === '/dashboard') {
+        return <Dashboard />;
+    }
+    
+    // If on auth path, show auth
+    if (currentPath === '/auth') {
+        return <Auth />;
+    }
+    
+    // Otherwise show main site
     return (
-        <div className="saas-app">
-            <Routes>
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/dashboard" element={
-                    user ? <Dashboard /> : <Auth />
-                } />
-                <Route path="*" element={
-                    user ? <Dashboard /> : <Auth />
-                } />
-            </Routes>
+        <div className="App">
+            <Header />
+            <main>
+                <Hero />
+                <Experience />
+                <Education />
+                <Skills />
+                <Contact />
+            </main>
         </div>
     );
 };

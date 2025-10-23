@@ -20,19 +20,8 @@ function App() {
         <Route path="/auth/*" element={<SaasApp />} />
         <Route path="/dashboard/*" element={<SaasApp />} />
 
-        {/* Main Site Route */}
-        <Route path="/" element={
-          <div className="App">
-            <Header />
-            <main>
-              <Hero />
-              <Experience />
-              <Education />
-              <Skills />
-              <Contact />
-            </main>
-          </div>
-        } />
+        {/* Main Site Route - but check for subdomain parameter first */}
+        <Route path="/" element={<SaasApp />} />
 
         {/* Catch all route for main site */}
         <Route path="*" element={
