@@ -1,2 +1,6 @@
-# Cloudflare Pages redirects
+# Cloudflare Pages redirects for React Router
+/dashboard    /index.html   200
+/auth    /index.html   200
+/auth/*    /index.html   200
+/dashboard/*    /index.html   200
 /*    /index.html   200
