@@ -13,11 +13,11 @@ import './components/LoadingSkeleton.css';
 function App() {
   // Check if we're on a subdomain
   const hostname = window.location.hostname;
-  const isSubdomain = hostname.includes('.') && 
-                     !hostname.includes('localhost') && 
-                     !hostname.includes('127.0.0.1') &&
-                     !hostname.includes('erendemirel.com.tr') && // Main domain
-                     hostname.split('.').length > 2; // Real subdomain
+  const isSubdomain = hostname.includes('.') &&
+    !hostname.includes('localhost') &&
+    !hostname.includes('127.0.0.1') &&
+    !hostname.includes('erendemirel.com.tr') && // Main domain
+    hostname.split('.').length > 2; // Real subdomain
 
   // If on subdomain, render SaasApp (which will handle SubdomainSite)
   if (isSubdomain) {
