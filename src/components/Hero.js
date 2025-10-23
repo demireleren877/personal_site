@@ -64,9 +64,9 @@ const Hero = () => {
     return null;
   }
 
-  // Calculate age dynamically
-  const currentYear = new Date().getFullYear();
-  const age = currentYear - heroData.birth_year;
+  // Calculate age dynamically (for future use)
+  // const currentYear = new Date().getFullYear();
+  // const age = currentYear - heroData.birth_year;
 
   return (
     <section id="home" className="hero">
