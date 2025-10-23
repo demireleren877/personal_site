@@ -56,12 +56,8 @@ const SaasApp = () => {
         <div className="saas-app">
             <Routes>
                 <Route path="/auth" element={<Auth />} />
-                <Route path="/dashboard" element={
-                    user ? <Dashboard /> : <Auth />
-                } />
-                <Route path="*" element={
-                    user ? <Dashboard /> : <Auth />
-                } />
+                <Route path="/dashboard" element={<Auth />} />
+                <Route path="*" element={<Auth />} />
             </Routes>
         </div>
     );
