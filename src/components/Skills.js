@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './Skills.css';
 import apiService from '../services/api';
 
-const Skills = () => {
+const Skills = ({ competencies: propCompetencies, tools: propTools, languages: propLanguages }) => {
   const [competencies, setCompetencies] = useState([]);
   const [tools, setTools] = useState([]);
   const [languages, setLanguages] = useState([]);
@@ -10,6 +10,16 @@ const Skills = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    // If skills data is passed as props (from subdomain), use them directly
+    if (propCompetencies || propTools || propLanguages) {
+      setCompetencies(propCompetencies || []);
+      setTools(propTools || []);
+      setLanguages(propLanguages || []);
+      setLoading(false);
+      return;
+    }
+
+    // Otherwise fetch from API (for main site)
     const fetchSkillsData = async () => {
       try {
         setLoading(true);
@@ -31,7 +41,7 @@ const Skills = () => {
     };
 
     fetchSkillsData();
-  }, []);
+  }, [propCompetencies, propTools, propLanguages]);
 
   if (loading) {
     return (

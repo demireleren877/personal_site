@@ -2,12 +2,20 @@ import React, { useState, useEffect } from 'react';
 import './Education.css';
 import apiService from '../services/api';
 
-const Education = () => {
+const Education = ({ education: propEducation }) => {
   const [education, setEducation] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    // If education is passed as prop (from subdomain), use it directly
+    if (propEducation) {
+      setEducation(propEducation);
+      setLoading(false);
+      return;
+    }
+
+    // Otherwise fetch from API (for main site)
     const fetchEducation = async () => {
       try {
         setLoading(true);
@@ -22,7 +30,7 @@ const Education = () => {
     };
 
     fetchEducation();
-  }, []);
+  }, [propEducation]);
 
   if (loading) {
     return (
@@ -61,7 +69,7 @@ const Education = () => {
     <section id="education" className="education">
       <div className="container">
         <div className="section-header">
-          <h2 className="section-title">Education & Certifications</h2>
+          <h2 className="section-title">Education</h2>
         </div>
 
         <div className="education-timeline">

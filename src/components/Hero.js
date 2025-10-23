@@ -2,12 +2,20 @@ import React, { useState, useEffect } from 'react';
 import './Hero.css';
 import apiService from '../services/api';
 
-const Hero = () => {
+const Hero = ({ heroData: propHeroData }) => {
   const [heroData, setHeroData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    // If heroData is passed as prop (from subdomain), use it directly
+    if (propHeroData) {
+      setHeroData(propHeroData);
+      setLoading(false);
+      return;
+    }
+
+    // Otherwise fetch from API (for main site)
     const fetchHeroData = async () => {
       try {
         setLoading(true);
@@ -24,7 +32,7 @@ const Hero = () => {
     };
 
     fetchHeroData();
-  }, []);
+  }, [propHeroData]);
 
   if (loading) {
     return (

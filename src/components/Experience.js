@@ -2,12 +2,20 @@ import React, { useState, useEffect } from 'react';
 import './Experience.css';
 import apiService from '../services/api';
 
-const Experience = () => {
+const Experience = ({ experiences: propExperiences }) => {
   const [experiences, setExperiences] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    // If experiences are passed as prop (from subdomain), use them directly
+    if (propExperiences) {
+      setExperiences(propExperiences);
+      setLoading(false);
+      return;
+    }
+
+    // Otherwise fetch from API (for main site)
     const fetchExperiences = async () => {
       try {
         setLoading(true);
@@ -22,7 +30,7 @@ const Experience = () => {
     };
 
     fetchExperiences();
-  }, []);
+  }, [propExperiences]);
 
   if (loading) {
     return (

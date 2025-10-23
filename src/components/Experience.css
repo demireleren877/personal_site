@@ -4,8 +4,11 @@
 }
 
 .section-header {
-  text-align: center;
+  text-align: center !important;
   margin-bottom: 4rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .section-title {
@@ -14,6 +17,8 @@
   color: var(--text-dark);
   margin-bottom: 1rem;
   position: relative;
+  text-align: center !important;
+  width: 100%;
 }
 
 .section-title::after {
