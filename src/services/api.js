@@ -37,7 +37,7 @@ class ApiService {
     // Hero data
     async getHeroData() {
         try {
-            return await this.fetchData('/api/site/demo-user/hero');
+            return await this.fetchData('/api/hero');
         } catch (error) {
             console.error('API Error, using fallback hero data:', error);
             return {
@@ -85,7 +85,7 @@ class ApiService {
     // Experiences
     async getExperiences() {
         try {
-            return await this.fetchData('/api/site/demo-user/experiences');
+            return await this.fetchData('/api/experiences');
         } catch (error) {
             console.error('API Error, using fallback data:', error);
             return [];
@@ -95,7 +95,7 @@ class ApiService {
     // Education
     async getEducation() {
         try {
-            return await this.fetchData('/api/site/demo-user/education');
+            return await this.fetchData('/api/education');
         } catch (error) {
             console.error('API Error, using fallback data:', error);
             return [];
@@ -105,7 +105,7 @@ class ApiService {
     // Competencies
     async getCompetencies() {
         try {
-            return await this.fetchData('/api/site/demo-user/competencies');
+            return await this.fetchData('/api/competencies');
         } catch (error) {
             console.error('API Error, using fallback data:', error);
             return [];
@@ -115,7 +115,7 @@ class ApiService {
     // Tools
     async getTools() {
         try {
-            return await this.fetchData('/api/site/demo-user/tools');
+            return await this.fetchData('/api/tools');
         } catch (error) {
             console.error('API Error, using fallback data:', error);
             return [];
@@ -125,7 +125,7 @@ class ApiService {
     // Languages
     async getLanguages() {
         try {
-            return await this.fetchData('/api/site/demo-user/languages');
+            return await this.fetchData('/api/languages');
         } catch (error) {
             console.error('API Error, using fallback data:', error);
             return [];

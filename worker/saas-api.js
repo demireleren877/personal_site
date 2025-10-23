@@ -46,6 +46,20 @@ export default {
                 return await getThemes(env, corsHeaders);
             } else if (path.startsWith('/api/site/') && path.includes('/contact') && method === 'POST') {
                 return await submitContactForm(path, request, env, corsHeaders);
+            } else if (path === '/api/hero' && method === 'GET') {
+                return await getMainSiteHero(env, corsHeaders);
+            } else if (path === '/api/experiences' && method === 'GET') {
+                return await getMainSiteExperiences(env, corsHeaders);
+            } else if (path === '/api/education' && method === 'GET') {
+                return await getMainSiteEducation(env, corsHeaders);
+            } else if (path === '/api/competencies' && method === 'GET') {
+                return await getMainSiteCompetencies(env, corsHeaders);
+            } else if (path === '/api/tools' && method === 'GET') {
+                return await getMainSiteTools(env, corsHeaders);
+            } else if (path === '/api/languages' && method === 'GET') {
+                return await getMainSiteLanguages(env, corsHeaders);
+            } else if (path === '/api/contact' && method === 'POST') {
+                return await submitMainSiteContact(request, env, corsHeaders);
             } else {
                 return new Response('Not Found', {
                     status: 404,
@@ -513,6 +527,92 @@ async function submitContactForm(path, request, env, corsHeaders) {
     await env.DB.prepare(
         'INSERT INTO site_contact_messages (site_id, name, email, subject, message) VALUES (?, ?, ?, ?, ?)'
     ).bind(site.id, name, email, subject, message).run();
+
+    return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+}
+
+// Main site functions (for the default personal site)
+async function getMainSiteHero(env, corsHeaders) {
+    const hero = await env.DB.prepare(
+        'SELECT * FROM site_hero_data WHERE site_id = 1'
+    ).first();
+
+    return new Response(JSON.stringify(hero), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+}
+
+async function getMainSiteExperiences(env, corsHeaders) {
+    const experiences = await env.DB.prepare(
+        'SELECT * FROM site_experiences WHERE site_id = 1 ORDER BY start_date DESC, order_index'
+    ).all();
+
+    const experiencesWithAchievements = await Promise.all(
+        experiences.results.map(async (exp) => {
+            const achievements = await env.DB.prepare(
+                'SELECT * FROM site_experience_achievements WHERE experience_id = ? ORDER BY order_index'
+            ).bind(exp.id).all();
+            
+            return {
+                ...exp,
+                achievements: achievements.results
+            };
+        })
+    );
+
+    return new Response(JSON.stringify(experiencesWithAchievements), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+}
+
+async function getMainSiteEducation(env, corsHeaders) {
+    const education = await env.DB.prepare(
+        'SELECT * FROM site_education WHERE site_id = 1 ORDER BY start_date DESC, order_index'
+    ).all();
+
+    return new Response(JSON.stringify(education.results), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+}
+
+async function getMainSiteCompetencies(env, corsHeaders) {
+    const competencies = await env.DB.prepare(
+        'SELECT * FROM site_competencies WHERE site_id = 1 ORDER BY order_index'
+    ).all();
+
+    return new Response(JSON.stringify(competencies.results), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+}
+
+async function getMainSiteTools(env, corsHeaders) {
+    const tools = await env.DB.prepare(
+        'SELECT * FROM site_tools WHERE site_id = 1 ORDER BY order_index'
+    ).all();
+
+    return new Response(JSON.stringify(tools.results), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+}
+
+async function getMainSiteLanguages(env, corsHeaders) {
+    const languages = await env.DB.prepare(
+        'SELECT * FROM site_languages WHERE site_id = 1 ORDER BY order_index'
+    ).all();
+
+    return new Response(JSON.stringify(languages.results), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+}
+
+async function submitMainSiteContact(request, env, corsHeaders) {
+    const { name, email, subject, message } = await request.json();
+
+    await env.DB.prepare(
+        'INSERT INTO site_contact_messages (site_id, name, email, subject, message) VALUES (?, ?, ?, ?, ?)'
+    ).bind(1, name, email, subject, message).run();
 
     return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
