@@ -46,14 +46,14 @@
   margin: 0 auto;
 }
 
-.education-item {
+.timeline-item {
   display: flex;
   gap: 2rem;
   margin-bottom: 3rem;
   position: relative;
 }
 
-.education-marker {
+.timeline-marker {
   position: relative;
   flex-shrink: 0;
 }
@@ -80,7 +80,7 @@
   z-index: 1;
 }
 
-.education-content {
+.timeline-content {
   flex: 1;
   animation: fadeInUp 0.8s ease-out;
 }
@@ -206,12 +206,12 @@
     font-size: 1rem;
   }
 
-  .education-item {
+  .timeline-item {
     flex-direction: column;
     gap: 1rem;
   }
 
-  .education-marker {
+  .timeline-marker {
     align-self: flex-start;
   }
 

@@ -79,13 +79,13 @@ const Education = ({ education: propEducation }) => {
               : `${edu.start_date} - ${edu.end_date}`;
 
             return (
-              <div key={index} className="education-item">
-                <div className="education-marker">
+              <div key={index} className="timeline-item">
+                <div className="timeline-marker">
                   <div className="marker-dot"></div>
                   {index < education.length - 1 && <div className="marker-line"></div>}
                 </div>
 
-                <div className="education-content">
+                <div className="timeline-content">
                   <div className="education-card">
                     <div className="education-header">
                       <h3 className="education-degree">{edu.degree}</h3>
@@ -100,7 +100,7 @@ const Education = ({ education: propEducation }) => {
                       <ul className="achievements-list">
                         {edu.achievements && edu.achievements.map((achievement, idx) => (
                           <li key={idx} className="achievement-item">
-                            <span className="achievement-icon">🎓</span>
+                            <span className="achievement-icon">✓</span>
                             {achievement.achievement}
                           </li>
                         ))}
