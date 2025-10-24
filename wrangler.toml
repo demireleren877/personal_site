@@ -7,6 +7,16 @@ binding = "DB"
 database_name = "personal-site-db"
 database_id = "bd8fb0cf-bbb1-44de-9be5-a1a2b20569a8"
 
+# Cloudflare API credentials for custom domain management
+[vars]
+CLOUDFLARE_ZONE_ID = "1e50033f772e0e5553b6c0fc13d49b87"
+CLOUDFLARE_WORKER_DOMAIN = "erendemirel.pages.dev"
+CLOUDFLARE_ACCOUNT_ID = "ded47c55374c6cf83ee86e6983b5bdb9"
+CLOUDFLARE_PROJECT_NAME = "erendemirel"
+
+# Secrets (set via wrangler secret put)
+# CLOUDFLARE_API_TOKEN = "KKPc089oIZTOdFi6zIdz4PEN75zyQRiuAyv-SjGU"
+
 [env.production]
 d1_databases = [
   { binding = "DB", database_name = "personal-site-db", database_id = "bd8fb0cf-bbb1-44de-9be5-a1a2b20569a8"}

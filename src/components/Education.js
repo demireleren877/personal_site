@@ -10,7 +10,11 @@ const Education = ({ education: propEducation }) => {
   useEffect(() => {
     // If education is passed as prop (from subdomain), use it directly
     if (propEducation) {
-      setEducation(propEducation);
+      const sortedEducation = [...propEducation].sort((a, b) => {
+        // Sort by start_date in descending order (newest first)
+        return new Date(b.start_date) - new Date(a.start_date);
+      });
+      setEducation(sortedEducation);
       setLoading(false);
       return;
     }
@@ -20,7 +24,11 @@ const Education = ({ education: propEducation }) => {
       try {
         setLoading(true);
         const data = await apiService.getEducation();
-        setEducation(data);
+        // Sort by start_date in descending order (newest first)
+        const sortedData = [...data].sort((a, b) => {
+          return new Date(b.start_date) - new Date(a.start_date);
+        });
+        setEducation(sortedData);
       } catch (err) {
         setError(err.message);
         console.error('Error fetching education:', err);

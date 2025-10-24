@@ -10,7 +10,11 @@ const Experience = ({ experiences: propExperiences }) => {
   useEffect(() => {
     // If experiences are passed as prop (from subdomain), use them directly
     if (propExperiences) {
-      setExperiences(propExperiences);
+      const sortedExperiences = [...propExperiences].sort((a, b) => {
+        // Sort by start_date in descending order (newest first)
+        return new Date(b.start_date) - new Date(a.start_date);
+      });
+      setExperiences(sortedExperiences);
       setLoading(false);
       return;
     }
@@ -20,7 +24,11 @@ const Experience = ({ experiences: propExperiences }) => {
       try {
         setLoading(true);
         const data = await apiService.getExperiences();
-        setExperiences(data);
+        // Sort by start_date in descending order (newest first)
+        const sortedData = [...data].sort((a, b) => {
+          return new Date(b.start_date) - new Date(a.start_date);
+        });
+        setExperiences(sortedData);
       } catch (err) {
         setError(err.message);
         console.error('Error fetching experiences:', err);

@@ -60,6 +60,8 @@ export default {
                 return await getMainSiteLanguages(env, corsHeaders);
             } else if (path === '/api/contact' && method === 'POST') {
                 return await submitMainSiteContact(request, env, corsHeaders);
+            } else if (path === '/api/user/domain' && method === 'POST') {
+                return await addCustomDomain(request, authResult.userId, env, corsHeaders);
             } else {
                 return new Response('Not Found', {
                     status: 404,
@@ -184,7 +186,7 @@ async function getUserSites(userId, env, corsHeaders) {
 
 // Create new site
 async function createUserSite(request, userId, env, corsHeaders) {
-    const { subdomain, site_name, site_description, theme_id } = await request.json();
+    const { subdomain, site_name, site_description, theme_id, custom_domain } = await request.json();
 
     // Check if subdomain is available
     const existingSite = await env.DB.prepare(
@@ -199,8 +201,18 @@ async function createUserSite(request, userId, env, corsHeaders) {
     }
 
     const result = await env.DB.prepare(
-        'INSERT INTO user_sites (user_id, subdomain, site_name, site_description, theme_id) VALUES (?, ?, ?, ?, ?)'
-    ).bind(userId, subdomain, site_name, site_description, theme_id || 1).run();
+        'INSERT INTO user_sites (user_id, subdomain, site_name, site_description, theme_id, domain) VALUES (?, ?, ?, ?, ?, ?)'
+    ).bind(userId, subdomain, site_name, site_description, theme_id || 1, custom_domain || null).run();
+
+    // If custom domain provided, create Cloudflare DNS record
+    if (custom_domain) {
+        try {
+            await createCloudflareDNSRecord(custom_domain, env);
+        } catch (error) {
+            console.error('Failed to create DNS record:', error);
+            // Continue with site creation even if DNS fails
+        }
+    }
 
     return new Response(JSON.stringify({
         success: true,
@@ -617,4 +629,147 @@ async function submitMainSiteContact(request, env, corsHeaders) {
     return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
+}
+
+// Cloudflare DNS record creation
+async function createCloudflareDNSRecord(domain, env) {
+    const zoneId = env.CLOUDFLARE_ZONE_ID;
+    const apiToken = env.CLOUDFLARE_API_TOKEN;
+    
+    console.log('Creating DNS record for domain:', domain);
+    console.log('Zone ID:', zoneId);
+    console.log('API Token exists:', !!apiToken);
+    console.log('API Token length:', apiToken ? apiToken.length : 0);
+    
+    if (!zoneId || !apiToken) {
+        throw new Error('Cloudflare credentials not configured');
+    }
+
+    // Extract subdomain from domain
+    const domainParts = domain.split('.');
+    const subdomain = domainParts[0];
+    const rootDomain = domainParts.slice(1).join('.');
+
+    console.log('Subdomain:', subdomain);
+    console.log('Root domain:', rootDomain);
+
+    const dnsRecord = {
+        type: 'CNAME',
+        name: subdomain,
+        content: env.CLOUDFLARE_WORKER_DOMAIN || 'personal-site-saas-api.l5819033.workers.dev',
+        ttl: 1, // Auto TTL
+        proxied: true // Enable Cloudflare proxy
+    };
+
+    console.log('DNS Record to create:', JSON.stringify(dnsRecord));
+
+    const response = await fetch(`https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${apiToken}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(dnsRecord)
+    });
+
+    console.log('Cloudflare API response status:', response.status);
+
+    if (!response.ok) {
+        const error = await response.json();
+        console.error('Cloudflare API error:', error);
+        throw new Error(`Cloudflare API error: ${error.errors?.[0]?.message || 'Unknown error'}`);
+    }
+
+    const result = await response.json();
+    console.log('DNS record created successfully:', result);
+    
+    // Also add domain to Cloudflare Pages
+    try {
+        await addDomainToPages(domain, env);
+    } catch (error) {
+        console.error('Failed to add domain to Pages:', error);
+        // Continue even if Pages API fails
+    }
+    
+    return result;
+}
+
+// Add domain to Cloudflare Pages
+async function addDomainToPages(domain, env) {
+    const accountId = env.CLOUDFLARE_ACCOUNT_ID;
+    const projectName = env.CLOUDFLARE_PROJECT_NAME;
+    const apiToken = env.CLOUDFLARE_API_TOKEN;
+    
+    console.log('Adding domain to Pages:', domain);
+    console.log('Account ID:', accountId);
+    console.log('Project Name:', projectName);
+    
+    if (!accountId || !projectName || !apiToken) {
+        throw new Error('Cloudflare Pages credentials not configured');
+    }
+    
+    const response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/pages/projects/${projectName}/domains`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${apiToken}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            name: domain
+        })
+    });
+    
+    console.log('Pages API response status:', response.status);
+    
+    if (!response.ok) {
+        const error = await response.json();
+        console.error('Pages API error:', error);
+        throw new Error(`Pages API error: ${error.errors?.[0]?.message || 'Unknown error'}`);
+    }
+    
+    const result = await response.json();
+    console.log('Domain added to Pages successfully:', result);
+    return result;
+}
+
+// Add custom domain to existing site
+async function addCustomDomain(request, userId, env, corsHeaders) {
+    const { site_id, custom_domain } = await request.json();
+
+    // Verify user owns the site
+    const site = await env.DB.prepare(
+        'SELECT id FROM user_sites WHERE id = ? AND user_id = ?'
+    ).bind(site_id, userId).first();
+
+    if (!site) {
+        return new Response(JSON.stringify({ error: 'Site not found or access denied' }), {
+            status: 404,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+    }
+
+    // Update site with custom domain
+    await env.DB.prepare(
+        'UPDATE user_sites SET domain = ? WHERE id = ?'
+    ).bind(custom_domain, site_id).run();
+
+    // Create Cloudflare DNS record
+    try {
+        await createCloudflareDNSRecord(custom_domain, env);
+        
+        return new Response(JSON.stringify({
+            success: true,
+            message: 'Custom domain added successfully'
+        }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+    } catch (error) {
+        return new Response(JSON.stringify({
+            error: 'Failed to create DNS record',
+            details: error.message
+        }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+    }
 }
