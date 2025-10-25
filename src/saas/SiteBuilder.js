@@ -823,6 +823,7 @@ const SiteBuilder = ({ siteId, onSave }) => {
                                                         <option value="React">React</option>
                                                         <option value="Node.js">Node.js</option>
                                                         <option value="SQL">SQL</option>
+                                                        <option value="Oracle SQL">Oracle SQL</option>
                                                         <option value="Excel">Excel</option>
                                                         <option value="Power BI">Power BI</option>
                                                         <option value="Tableau">Tableau</option>
