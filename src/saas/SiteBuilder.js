@@ -45,31 +45,42 @@ const SiteBuilder = ({ siteId, onSave }) => {
     const loadSiteData = async () => {
         try {
             setLoading(true);
+            console.log('SiteBuilder: loadSiteData called');
 
-            const token = localStorage.getItem('token');
-            const userData = localStorage.getItem('user');
+            // Firebase'den doğrudan user bilgilerini al
+            const { getCurrentUser } = await import('../firebase/authService');
+            const firebaseUser = getCurrentUser();
+            console.log('SiteBuilder: Firebase user:', firebaseUser);
 
-            if (!token || !userData) {
+            if (!firebaseUser) {
+                console.error('SiteBuilder: No Firebase user found');
                 setLoading(false);
                 return;
             }
 
-            const user = JSON.parse(userData);
+            console.log('SiteBuilder: User UID:', firebaseUser.uid);
+            console.log('SiteBuilder: User email:', firebaseUser.email);
+            console.log('SiteBuilder: User displayName:', firebaseUser.displayName);
             
             // Get user's sites to find the correct subdomain
+            console.log('Fetching user sites for UID:', firebaseUser.uid);
             const sitesResponse = await fetch('https://personal-site-saas-api.l5819033.workers.dev/api/user/sites', {
                 headers: {
-                    'Authorization': `Bearer ${user.uid}`
+                    'Authorization': `Bearer ${firebaseUser.uid}`
                 }
             });
             
+            console.log('Sites response status:', sitesResponse.status);
+            
             if (!sitesResponse.ok) {
-                console.error('Failed to fetch user sites');
+                console.error('Failed to fetch user sites:', sitesResponse.status, sitesResponse.statusText);
                 setLoading(false);
                 return;
             }
             
             const sites = await sitesResponse.json();
+            console.log('User sites:', sites);
+            
             if (!sites || sites.length === 0) {
                 console.error('No sites found for user');
                 setLoading(false);
@@ -78,6 +89,7 @@ const SiteBuilder = ({ siteId, onSave }) => {
             
             // Use the first site's subdomain
             const subdomain = sites[0].subdomain;
+            console.log('Using subdomain:', subdomain);
 
             // Load existing site data from API
             const [heroRes, experiencesRes, educationRes, competenciesRes, toolsRes, languagesRes] = await Promise.all([
@@ -135,22 +147,35 @@ const SiteBuilder = ({ siteId, onSave }) => {
 
     const fetchUserSites = async () => {
         try {
-            const userData = localStorage.getItem('user');
-            if (!userData) return;
+            console.log('SiteBuilder: fetchUserSites called');
+            
+            // Firebase'den doğrudan user bilgilerini al
+            const { getCurrentUser } = await import('../firebase/authService');
+            const firebaseUser = getCurrentUser();
+            console.log('SiteBuilder: Firebase user in fetchUserSites:', firebaseUser);
+            
+            if (!firebaseUser) {
+                console.error('SiteBuilder: No Firebase user in fetchUserSites');
+                return;
+            }
 
-            const user = JSON.parse(userData);
             const response = await fetch('https://personal-site-saas-api.l5819033.workers.dev/api/user/sites', {
                 headers: {
-                    'Authorization': `Bearer ${user.uid}`
+                    'Authorization': `Bearer ${firebaseUser.uid}`
                 }
             });
 
+            console.log('SiteBuilder: Sites response status:', response.status);
+
             if (response.ok) {
                 const sitesData = await response.json();
+                console.log('SiteBuilder: Sites data:', sitesData);
                 setSites(sitesData);
+            } else {
+                console.error('SiteBuilder: Failed to fetch sites:', response.status, response.statusText);
             }
         } catch (error) {
-            console.error('Error fetching user sites:', error);
+            console.error('SiteBuilder: Error fetching user sites:', error);
         }
     };
 
@@ -175,14 +200,15 @@ const SiteBuilder = ({ siteId, onSave }) => {
             try {
                 setDomainLoading(true);
                 
-                const userData = localStorage.getItem('user');
-                if (!userData || !selectedSite) {
+                // Firebase'den doğrudan user bilgilerini al
+                const { getCurrentUser } = await import('../firebase/authService');
+                const firebaseUser = getCurrentUser();
+                
+                if (!firebaseUser || !selectedSite) {
                     alert('Lütfen önce giriş yapın!');
                     setDomainLoading(false);
                     return;
                 }
-
-                const user = JSON.parse(userData);
                 const fullDomain = `${customDomain}.erendemirel.com.tr`;
                 
                 // Aynı domain zaten eklenmiş mi kontrol et
@@ -196,7 +222,7 @@ const SiteBuilder = ({ siteId, onSave }) => {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${user.uid}`
+                        'Authorization': `Bearer ${firebaseUser.uid}`
                     },
                     body: JSON.stringify({
                         site_id: selectedSite.id,

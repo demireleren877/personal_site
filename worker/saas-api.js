@@ -273,10 +273,14 @@ async function getUserProfile(userId, env, corsHeaders) {
 
 // Get user sites
 async function getUserSites(userId, env, corsHeaders) {
+    console.log('getUserSites called with userId:', userId);
+    
     const sites = await env.DB.prepare(
         'SELECT us.*, t.name as theme_name FROM user_sites us LEFT JOIN themes t ON us.theme_id = t.id WHERE us.user_id = ? ORDER BY us.created_at DESC'
     ).bind(userId).all();
 
+    console.log('Found sites:', sites.results);
+    
     return new Response(JSON.stringify(sites.results), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
@@ -323,20 +327,33 @@ async function createUserSite(request, userId, env, corsHeaders) {
 // Get site data (public endpoint)
 async function getSiteData(path, env, corsHeaders) {
     const pathParts = path.split('/');
-    const subdomain = pathParts[3]; // /api/site/{subdomain}/...
+    const identifier = pathParts[3]; // /api/site/{identifier}/...
     const dataType = pathParts[4]; // hero, about, experiences, etc.
 
-    // Get site info (allow unpublished sites for editing)
-    const site = await env.DB.prepare(
+    console.log('getSiteData called with identifier:', identifier);
+
+    // First try to find by subdomain
+    let site = await env.DB.prepare(
         'SELECT us.*, t.css_variables FROM user_sites us LEFT JOIN themes t ON us.theme_id = t.id WHERE us.subdomain = ?'
-    ).bind(subdomain).first();
+    ).bind(identifier).first();
+
+    // If not found by subdomain, try to find by domain
+    if (!site) {
+        console.log('Site not found by subdomain, trying domain...');
+        site = await env.DB.prepare(
+            'SELECT us.*, t.css_variables FROM user_sites us LEFT JOIN themes t ON us.theme_id = t.id WHERE us.domain = ?'
+        ).bind(identifier).first();
+    }
 
     if (!site) {
+        console.log('Site not found by subdomain or domain:', identifier);
         return new Response(JSON.stringify({ error: 'Site not found' }), {
             status: 404,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
     }
+
+    console.log('Site found:', site.subdomain, site.domain);
 
     let data = null;
 
@@ -1020,10 +1037,30 @@ async function addCustomDomain(request, userId, env, corsHeaders) {
         });
     }
 
-    // Update site with custom domain
+    // Extract subdomain from custom domain (e.g., "de878.erendemirel.com.tr" -> "de878")
+    const domainParts = custom_domain.split('.');
+    const newSubdomain = domainParts[0];
+    
+    // Check if the new subdomain is already used by another site
+    const existingSubdomain = await env.DB.prepare(
+        'SELECT id FROM user_sites WHERE subdomain = ? AND id != ?'
+    ).bind(newSubdomain, site_id).first();
+    
+    if (existingSubdomain) {
+        return new Response(JSON.stringify({
+            error: 'This subdomain is already in use by another site'
+        }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+    }
+    
+    // Update site with custom domain and new subdomain
     await env.DB.prepare(
-        'UPDATE user_sites SET domain = ? WHERE id = ?'
-    ).bind(custom_domain, site_id).run();
+        'UPDATE user_sites SET domain = ?, subdomain = ? WHERE id = ?'
+    ).bind(custom_domain, newSubdomain, site_id).run();
+    
+    console.log('Updated site with domain:', custom_domain, 'and subdomain:', newSubdomain);
 
     // Create Cloudflare DNS record
     try {
