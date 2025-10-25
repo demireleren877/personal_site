@@ -14,11 +14,6 @@ const SiteBuilder = ({ siteId, onSave }) => {
             linkedin_url: '',
             cv_url: ''
         },
-        about: {
-            title: '',
-            description: ''
-        },
-        aboutHighlights: [],
         experiences: [],
         experienceAchievements: [],
         education: [],
@@ -29,6 +24,8 @@ const SiteBuilder = ({ siteId, onSave }) => {
     });
     const [activeSection, setActiveSection] = useState('hero');
     const [loading, setLoading] = useState(false);
+    const [expandedExperiences, setExpandedExperiences] = useState({});
+    const [expandedEducation, setExpandedEducation] = useState({});
 
     useEffect(() => {
         loadSiteData();
@@ -50,9 +47,8 @@ const SiteBuilder = ({ siteId, onSave }) => {
             const subdomain = user.name?.toLowerCase().replace(/\s+/g, '-') || 'user';
 
             // Load existing site data from API
-            const [heroRes, aboutRes, experiencesRes, educationRes, competenciesRes, toolsRes, languagesRes] = await Promise.all([
+            const [heroRes, experiencesRes, educationRes, competenciesRes, toolsRes, languagesRes] = await Promise.all([
                 fetch(`https://personal-site-saas-api.l5819033.workers.dev/api/site/${subdomain}/hero`),
-                fetch(`https://personal-site-saas-api.l5819033.workers.dev/api/site/${subdomain}/about`),
                 fetch(`https://personal-site-saas-api.l5819033.workers.dev/api/site/${subdomain}/experiences`),
                 fetch(`https://personal-site-saas-api.l5819033.workers.dev/api/site/${subdomain}/education`),
                 fetch(`https://personal-site-saas-api.l5819033.workers.dev/api/site/${subdomain}/competencies`),
@@ -61,12 +57,13 @@ const SiteBuilder = ({ siteId, onSave }) => {
             ]);
 
             const heroData = heroRes.ok ? await heroRes.json() : null;
-            const aboutData = aboutRes.ok ? await aboutRes.json() : null;
             const experiences = experiencesRes.ok ? await experiencesRes.json() : [];
             const education = educationRes.ok ? await educationRes.json() : [];
             const competencies = competenciesRes.ok ? await competenciesRes.json() : [];
             const tools = toolsRes.ok ? await toolsRes.json() : [];
             const languages = languagesRes.ok ? await languagesRes.json() : [];
+
+            console.log('Loaded experiences from API:', experiences);
 
             setSiteData({
                 hero: heroData || {
@@ -80,8 +77,6 @@ const SiteBuilder = ({ siteId, onSave }) => {
                     linkedin_url: '',
                     cv_url: ''
                 },
-                about: aboutData || { title: '', description: '' },
-                aboutHighlights: [],
                 experiences: experiences || [],
                 experienceAchievements: [],
                 education: education || [],
@@ -100,6 +95,21 @@ const SiteBuilder = ({ siteId, onSave }) => {
     const handleSave = async () => {
         try {
             setLoading(true);
+
+            // Experience tarih kontrolü
+            for (let i = 0; i < siteData.experiences.length; i++) {
+                const exp = siteData.experiences[i];
+                if (exp.start_date && exp.end_date && exp.end_date !== '') {
+                    if (new Date(exp.end_date) < new Date(exp.start_date)) {
+                        alert(`Experience ${i + 1}: End date cannot be earlier than start date. Please fix the dates.`);
+                        setLoading(false);
+                        return;
+                    }
+                }
+            }
+
+            console.log('Saving site data:', siteData);
+            console.log('Experiences:', siteData.experiences);
             await onSave(siteData);
         } catch (error) {
             console.error('Error saving site:', error);
@@ -123,11 +133,16 @@ const SiteBuilder = ({ siteId, onSave }) => {
     };
 
     const updateExperience = (index, field, value) => {
+        console.log('updateExperience:', { index, field, value });
         setSiteData(prev => ({
             ...prev,
-            experiences: prev.experiences.map((exp, i) =>
-                i === index ? { ...exp, [field]: value } : exp
-            )
+            experiences: prev.experiences.map((exp, i) => {
+                if (i === index) {
+                    const updatedExp = { ...exp, [field]: value };
+                    return updatedExp;
+                }
+                return exp;
+            })
         }));
     };
 
@@ -202,6 +217,20 @@ const SiteBuilder = ({ siteId, onSave }) => {
         }));
     };
 
+    const toggleExperience = (index) => {
+        setExpandedExperiences(prev => ({
+            ...prev,
+            [index]: !prev[index]
+        }));
+    };
+
+    const toggleEducation = (index) => {
+        setExpandedEducation(prev => ({
+            ...prev,
+            [index]: !prev[index]
+        }));
+    };
+
     // Removed unused highlight functions
 
     if (loading) {
@@ -233,12 +262,6 @@ const SiteBuilder = ({ siteId, onSave }) => {
                             onClick={() => setActiveSection('hero')}
                         >
                             Hero Section
-                        </button>
-                        <button
-                            className={activeSection === 'about' ? 'active' : ''}
-                            onClick={() => setActiveSection('about')}
-                        >
-                            About Section
                         </button>
                         <button
                             className={activeSection === 'experience' ? 'active' : ''}
@@ -311,15 +334,14 @@ const SiteBuilder = ({ siteId, onSave }) => {
                             </div>
                             <div className="form-row">
                                 <div className="form-group">
-                                    <label>Birth Year</label>
+                                    <label>Birth Date</label>
                                     <input
-                                        type="number"
+                                        type="date"
                                         value={siteData.hero.birth_year}
                                         onChange={(e) => setSiteData(prev => ({
                                             ...prev,
                                             hero: { ...prev.hero, birth_year: e.target.value }
                                         }))}
-                                        placeholder="1990"
                                     />
                                 </div>
                                 <div className="form-group">
@@ -390,136 +412,134 @@ const SiteBuilder = ({ siteId, onSave }) => {
 
                     {activeSection === 'experience' && (
                         <div className="section-editor">
-                            <h3>Experience Section</h3>
                             <div className="section-header">
-                                <h4>Work Experience</h4>
+                                <h3>Experience Section</h3>
                                 <button className="add-btn" onClick={addExperience}>
                                     + Add Experience
                                 </button>
                             </div>
 
                             {siteData.experiences.map((exp, index) => (
-                                <div key={index} className="experience-editor">
-                                    <div className="form-group">
-                                        <label>Company</label>
-                                        <input
-                                            type="text"
-                                            value={exp.company}
-                                            onChange={(e) => updateExperience(index, 'company', e.target.value)}
-                                            placeholder="Company Name"
-                                        />
+                                <div key={index} className="experience-card">
+                                    <div className="card-header" onClick={() => toggleExperience(index)}>
+                                        <h4>{exp.company || 'New Experience'}</h4>
+                                        <span className="toggle-icon">
+                                            {expandedExperiences[index] ? '−' : '+'}
+                                        </span>
                                     </div>
-                                    <div className="form-group">
-                                        <label>Position</label>
-                                        <input
-                                            type="text"
-                                            value={exp.title || exp.position || ''}
-                                            onChange={(e) => updateExperience(index, 'title', e.target.value)}
-                                            placeholder="Job Title"
-                                        />
-                                    </div>
-                                    <div className="form-row">
-                                        <div className="form-group">
-                                            <label>Start Date</label>
-                                            <input
-                                                type="text"
-                                                value={exp.start_date}
-                                                onChange={(e) => updateExperience(index, 'start_date', e.target.value)}
-                                                placeholder="2020"
-                                            />
-                                        </div>
-                                        <div className="form-group">
-                                            <label>End Date</label>
-                                            <input
-                                                type="text"
-                                                value={exp.end_date}
-                                                onChange={(e) => updateExperience(index, 'end_date', e.target.value)}
-                                                placeholder="2023 or Present"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Description</label>
-                                        <textarea
-                                            value={exp.description}
-                                            onChange={(e) => updateExperience(index, 'description', e.target.value)}
-                                            placeholder="Describe your role and responsibilities"
-                                            rows="3"
-                                        />
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Key Achievements</label>
-                                        <div className="achievements-list">
-                                            {exp.achievements && exp.achievements.map((achievement, achIndex) => (
-                                                <div key={achIndex} className="achievement-item">
+                                    {expandedExperiences[index] && (
+                                        <div className="card-content">
+                                            <div className="form-group">
+                                                <label>Company</label>
+                                                <input
+                                                    type="text"
+                                                    value={exp.company}
+                                                    onChange={(e) => updateExperience(index, 'company', e.target.value)}
+                                                    placeholder="Company Name"
+                                                />
+                                            </div>
+                                            <div className="form-group">
+                                                <label>Position</label>
+                                                <input
+                                                    type="text"
+                                                    value={exp.title || exp.position || ''}
+                                                    onChange={(e) => updateExperience(index, 'title', e.target.value)}
+                                                    placeholder="Job Title"
+                                                />
+                                            </div>
+                                            <div className="form-row">
+                                                <div className="form-group">
+                                                    <label>Start Date</label>
                                                     <input
-                                                        type="text"
-                                                        value={achievement.achievement}
-                                                        onChange={(e) => {
-                                                            const newAchievements = [...exp.achievements];
-                                                            newAchievements[achIndex] = { achievement: e.target.value };
-                                                            updateExperience(index, 'achievements', newAchievements);
-                                                        }}
-                                                        placeholder={`Achievement ${achIndex + 1}`}
+                                                        type="date"
+                                                        value={exp.start_date}
+                                                        onChange={(e) => updateExperience(index, 'start_date', e.target.value)}
                                                     />
+                                                </div>
+                                                <div className="form-group">
+                                                    <label>End Date</label>
+                                                    <input
+                                                        type="date"
+                                                        value={exp.end_date || ''}
+                                                        onChange={(e) => updateExperience(index, 'end_date', e.target.value)}
+                                                        disabled={!exp.end_date || exp.end_date === ''}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="present-option">
+                                                <span className="present-label">Present</span>
+                                                <label className="toggle-switch">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={!exp.end_date || exp.end_date === ''}
+                                                        onChange={(e) => {
+                                                            if (e.target.checked) {
+                                                                updateExperience(index, 'end_date', '');
+                                                            } else {
+                                                                // Toggle kapatıldığında end_date'i bugünün tarihi yap
+                                                                const today = new Date().toISOString().split('T')[0];
+                                                                updateExperience(index, 'end_date', today);
+                                                            }
+                                                        }}
+                                                    />
+                                                    <span className="toggle-slider"></span>
+                                                </label>
+                                            </div>
+                                            <div className="form-group">
+                                                <label>Description</label>
+                                                <textarea
+                                                    value={exp.description}
+                                                    onChange={(e) => updateExperience(index, 'description', e.target.value)}
+                                                    placeholder="Describe your role and responsibilities"
+                                                    rows="3"
+                                                />
+                                            </div>
+                                            <div className="form-group">
+                                                <label>Key Achievements</label>
+                                                <div className="achievements-list">
+                                                    {exp.achievements && exp.achievements.map((achievement, achIndex) => (
+                                                        <div key={achIndex} className="achievement-item">
+                                                            <input
+                                                                type="text"
+                                                                value={achievement.achievement}
+                                                                onChange={(e) => {
+                                                                    const newAchievements = [...exp.achievements];
+                                                                    newAchievements[achIndex] = { achievement: e.target.value };
+                                                                    updateExperience(index, 'achievements', newAchievements);
+                                                                }}
+                                                                placeholder={`Achievement ${achIndex + 1}`}
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const newAchievements = exp.achievements.filter((_, i) => i !== achIndex);
+                                                                    updateExperience(index, 'achievements', newAchievements);
+                                                                }}
+                                                                className="remove-achievement-btn"
+                                                            >
+                                                                ×
+                                                            </button>
+                                                        </div>
+                                                    ))}
                                                     <button
                                                         type="button"
                                                         onClick={() => {
-                                                            const newAchievements = exp.achievements.filter((_, i) => i !== achIndex);
+                                                            const newAchievements = [...(exp.achievements || []), { achievement: '' }];
                                                             updateExperience(index, 'achievements', newAchievements);
                                                         }}
-                                                        className="remove-achievement-btn"
+                                                        className="add-achievement-btn"
                                                     >
-                                                        ×
+                                                        + Add Achievement
                                                     </button>
                                                 </div>
-                                            ))}
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    const newAchievements = [...(exp.achievements || []), { achievement: '' }];
-                                                    updateExperience(index, 'achievements', newAchievements);
-                                                }}
-                                                className="add-achievement-btn"
-                                            >
-                                                + Add Achievement
-                                            </button>
+                                            </div>
                                         </div>
-                                    </div>
+                                    )}
                                 </div>
                             ))}
                         </div>
                     )}
 
-                    {activeSection === 'about' && (
-                        <div className="section-editor">
-                            <h3>About Section</h3>
-                            <div className="form-group">
-                                <label>About Title</label>
-                                <input
-                                    type="text"
-                                    value={siteData.about.title}
-                                    onChange={(e) => setSiteData(prev => ({
-                                        ...prev,
-                                        about: { ...prev.about, title: e.target.value }
-                                    }))}
-                                    placeholder="About Me"
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label>About Description</label>
-                                <textarea
-                                    value={siteData.about.description}
-                                    onChange={(e) => setSiteData(prev => ({
-                                        ...prev,
-                                        about: { ...prev.about, description: e.target.value }
-                                    }))}
-                                    placeholder="Tell people more about yourself, your background, interests, and what drives you..."
-                                    rows="6"
-                                />
-                            </div>
-                        </div>
-                    )}
 
                     {activeSection === 'education' && (
                         <div className="section-editor">
@@ -532,54 +552,64 @@ const SiteBuilder = ({ siteId, onSave }) => {
                             </div>
 
                             {siteData.education.map((edu, index) => (
-                                <div key={index} className="education-editor">
-                                    <div className="form-group">
-                                        <label>Institution</label>
-                                        <input
-                                            type="text"
-                                            value={edu.institution}
-                                            onChange={(e) => updateEducation(index, 'institution', e.target.value)}
-                                            placeholder="University Name"
-                                        />
+                                <div key={index} className="education-card">
+                                    <div className="card-header" onClick={() => toggleEducation(index)}>
+                                        <h4>{edu.institution || 'New Education'}</h4>
+                                        <span className="toggle-icon">
+                                            {expandedEducation[index] ? '−' : '+'}
+                                        </span>
                                     </div>
-                                    <div className="form-group">
-                                        <label>Degree</label>
-                                        <input
-                                            type="text"
-                                            value={edu.degree}
-                                            onChange={(e) => updateEducation(index, 'degree', e.target.value)}
-                                            placeholder="Bachelor's Degree"
-                                        />
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Field of Study</label>
-                                        <input
-                                            type="text"
-                                            value={edu.field}
-                                            onChange={(e) => updateEducation(index, 'field', e.target.value)}
-                                            placeholder="Computer Science"
-                                        />
-                                    </div>
-                                    <div className="form-row">
-                                        <div className="form-group">
-                                            <label>Start Date</label>
-                                            <input
-                                                type="text"
-                                                value={edu.start_date}
-                                                onChange={(e) => updateEducation(index, 'start_date', e.target.value)}
-                                                placeholder="2018"
-                                            />
+                                    {expandedEducation[index] && (
+                                        <div className="card-content">
+                                            <div className="form-group">
+                                                <label>Institution</label>
+                                                <input
+                                                    type="text"
+                                                    value={edu.institution}
+                                                    onChange={(e) => updateEducation(index, 'institution', e.target.value)}
+                                                    placeholder="University Name"
+                                                />
+                                            </div>
+                                            <div className="form-group">
+                                                <label>Degree</label>
+                                                <input
+                                                    type="text"
+                                                    value={edu.degree}
+                                                    onChange={(e) => updateEducation(index, 'degree', e.target.value)}
+                                                    placeholder="Bachelor's Degree"
+                                                />
+                                            </div>
+                                            <div className="form-group">
+                                                <label>Field of Study</label>
+                                                <input
+                                                    type="text"
+                                                    value={edu.field}
+                                                    onChange={(e) => updateEducation(index, 'field', e.target.value)}
+                                                    placeholder="Computer Science"
+                                                />
+                                            </div>
+                                            <div className="form-row">
+                                                <div className="form-group">
+                                                    <label>Start Date</label>
+                                                    <input
+                                                        type="text"
+                                                        value={edu.start_date}
+                                                        onChange={(e) => updateEducation(index, 'start_date', e.target.value)}
+                                                        placeholder="2018"
+                                                    />
+                                                </div>
+                                                <div className="form-group">
+                                                    <label>End Date</label>
+                                                    <input
+                                                        type="text"
+                                                        value={edu.end_date}
+                                                        onChange={(e) => updateEducation(index, 'end_date', e.target.value)}
+                                                        placeholder="2022"
+                                                    />
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div className="form-group">
-                                            <label>End Date</label>
-                                            <input
-                                                type="text"
-                                                value={edu.end_date}
-                                                onChange={(e) => updateEducation(index, 'end_date', e.target.value)}
-                                                placeholder="2022"
-                                            />
-                                        </div>
-                                    </div>
+                                    )}
                                 </div>
                             ))}
                         </div>

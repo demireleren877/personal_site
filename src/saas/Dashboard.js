@@ -184,9 +184,6 @@ const Dashboard = () => {
 
             <div className="dashboard-content">
                 <div className="content-section">
-                    <h2>Portfolyo Sitenizi Düzenleyin</h2>
-                    <p>Kendi portfolyo sitenizi oluşturun ve düzenleyin.</p>
-
                     <div className="site-builder-section">
                         <SiteBuilder
                             siteId="default"
@@ -209,13 +206,13 @@ const Dashboard = () => {
                                     <p>Status: {site.is_published ? 'Yayında' : 'Taslak'}</p>
                                 </div>
                                 <div className="site-actions">
-                                    <button 
+                                    <button
                                         className="domain-btn"
                                         onClick={() => handleAddCustomDomain(site)}
                                     >
                                         {site.domain ? 'Domain Değiştir' : 'Custom Domain Ekle'}
                                     </button>
-                                    <a 
+                                    <a
                                         href={`https://${site.subdomain}.yourdomain.com`}
                                         target="_blank"
                                         rel="noopener noreferrer"
@@ -247,13 +244,13 @@ const Dashboard = () => {
                             />
                         </div>
                         <div className="modal-actions">
-                            <button 
+                            <button
                                 className="cancel-btn"
                                 onClick={() => setShowDomainModal(false)}
                             >
                                 İptal
                             </button>
-                            <button 
+                            <button
                                 className="save-btn"
                                 onClick={handleSaveCustomDomain}
                             >

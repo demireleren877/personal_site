@@ -387,6 +387,10 @@ async function updateSiteData(path, request, userId, env, corsHeaders) {
             // Insert new experiences
             for (let i = 0; i < data.experiences.length; i++) {
                 const exp = data.experiences[i];
+                console.log('Processing experience:', exp);
+                const endDate = exp.end_date || '';
+                console.log('end_date:', endDate);
+
                 const result = await env.DB.prepare(
                     'INSERT INTO site_experiences (site_id, title, company, start_date, end_date, description, order_index) VALUES (?, ?, ?, ?, ?, ?, ?)'
                 ).bind(
@@ -394,7 +398,7 @@ async function updateSiteData(path, request, userId, env, corsHeaders) {
                     exp.title || exp.position || '',
                     exp.company || '',
                     exp.start_date || '',
-                    exp.end_date || '',
+                    endDate,
                     exp.description || '',
                     i
                 ).run();
@@ -566,7 +570,7 @@ async function getMainSiteExperiences(env, corsHeaders) {
             const achievements = await env.DB.prepare(
                 'SELECT * FROM site_experience_achievements WHERE experience_id = ? ORDER BY order_index'
             ).bind(exp.id).all();
-            
+
             return {
                 ...exp,
                 achievements: achievements.results
@@ -635,12 +639,12 @@ async function submitMainSiteContact(request, env, corsHeaders) {
 async function createCloudflareDNSRecord(domain, env) {
     const zoneId = env.CLOUDFLARE_ZONE_ID;
     const apiToken = env.CLOUDFLARE_API_TOKEN;
-    
+
     console.log('Creating DNS record for domain:', domain);
     console.log('Zone ID:', zoneId);
     console.log('API Token exists:', !!apiToken);
     console.log('API Token length:', apiToken ? apiToken.length : 0);
-    
+
     if (!zoneId || !apiToken) {
         throw new Error('Cloudflare credentials not configured');
     }
@@ -682,7 +686,7 @@ async function createCloudflareDNSRecord(domain, env) {
 
     const result = await response.json();
     console.log('DNS record created successfully:', result);
-    
+
     // Also add domain to Cloudflare Pages
     try {
         await addDomainToPages(domain, env);
@@ -690,7 +694,7 @@ async function createCloudflareDNSRecord(domain, env) {
         console.error('Failed to add domain to Pages:', error);
         // Continue even if Pages API fails
     }
-    
+
     return result;
 }
 
@@ -699,15 +703,15 @@ async function addDomainToPages(domain, env) {
     const accountId = env.CLOUDFLARE_ACCOUNT_ID;
     const projectName = env.CLOUDFLARE_PROJECT_NAME;
     const apiToken = env.CLOUDFLARE_API_TOKEN;
-    
+
     console.log('Adding domain to Pages:', domain);
     console.log('Account ID:', accountId);
     console.log('Project Name:', projectName);
-    
+
     if (!accountId || !projectName || !apiToken) {
         throw new Error('Cloudflare Pages credentials not configured');
     }
-    
+
     const response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/pages/projects/${projectName}/domains`, {
         method: 'POST',
         headers: {
@@ -718,15 +722,15 @@ async function addDomainToPages(domain, env) {
             name: domain
         })
     });
-    
+
     console.log('Pages API response status:', response.status);
-    
+
     if (!response.ok) {
         const error = await response.json();
         console.error('Pages API error:', error);
         throw new Error(`Pages API error: ${error.errors?.[0]?.message || 'Unknown error'}`);
     }
-    
+
     const result = await response.json();
     console.log('Domain added to Pages successfully:', result);
     return result;
@@ -756,7 +760,7 @@ async function addCustomDomain(request, userId, env, corsHeaders) {
     // Create Cloudflare DNS record
     try {
         await createCloudflareDNSRecord(custom_domain, env);
-        
+
         return new Response(JSON.stringify({
             success: true,
             message: 'Custom domain added successfully'
