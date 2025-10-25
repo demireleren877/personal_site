@@ -69,7 +69,7 @@ CREATE TABLE education (
   start_date TEXT NOT NULL,
   end_date TEXT,
   is_current BOOLEAN DEFAULT FALSE,
-  description TEXT NOT NULL,
+  field_of_study TEXT NOT NULL,
   order_index INTEGER NOT NULL,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -151,9 +151,9 @@ INSERT INTO experience_achievements (experience_id, achievement, order_index) VA
 (2, 'Contributed to software development projects', 3),
 (2, 'Applied programming skills in a professional environment', 4);
 
-INSERT INTO education (degree, school, start_date, end_date, is_current, description, order_index) VALUES 
-('Mathematical Engineering', 'Yıldız Technical University', 'September 2019', 'May 2024', FALSE, 'Bachelor''s degree in Mathematical Engineering with focus on mathematical modeling, data analysis, and engineering principles.', 1),
-('Data Academy Certification', 'Eureko Sigorta', '2022', '2022', FALSE, 'Successfully completed the Data Academy program organized by Eureko Sigorta, culminating in a project preparation and presentation.', 2);
+INSERT INTO education (degree, school, start_date, end_date, is_current, field_of_study, order_index) VALUES 
+('Mathematical Engineering', 'Yıldız Technical University', 'September 2019', 'May 2024', FALSE, 'Mathematical Engineering', 1),
+('Data Academy Certification', 'Eureko Sigorta', '2022', '2022', FALSE, 'Data Analytics', 2);
 
 INSERT INTO education_achievements (education_id, achievement, order_index) VALUES 
 (1, 'Comprehensive training in mathematical modeling and analysis', 1),

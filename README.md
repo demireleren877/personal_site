@@ -167,3 +167,14 @@ Bu proje MIT lisansı altında lisanslanmıştır.
 **Eren Demirel**
 - GitHub: [@demireleren877](https://github.com/demireleren877)
 - LinkedIn: [demireleren877](https://linkedin.com/in/demireleren877)
+
+## 📌 Migration Notu (Education)
+- `site_education.description` alanı `field_of_study` olarak değiştirildi.
+- Worker ve frontend artık `field_of_study` alanını kullanır (geri uyumluluk için SELECT tarafında `COALESCE(field_of_study, description)` uygulanır).
+- Mevcut D1 veritabanını dönüştürmek için (idempotent) komutlar:
+
+```sql
+ALTER TABLE site_education ADD COLUMN field_of_study TEXT;
+UPDATE site_education SET field_of_study = COALESCE(field_of_study, description);
+-- Not: SQLite/D1 doğrudan sütun silmeyi desteklemediğinden eski `description` kolonunu bırakabilir veya yeni tablo oluşturarak taşıma yapabilirsiniz.
+```

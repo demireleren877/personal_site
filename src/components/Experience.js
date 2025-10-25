@@ -82,9 +82,17 @@ const Experience = ({ experiences: propExperiences }) => {
 
         <div className="experience-timeline">
           {experiences.map((exp, index) => {
+            const formatDate = (dateStr) => {
+              if (!dateStr) return '';
+              const date = new Date(dateStr);
+              const months = ['January', 'February', 'March', 'April', 'May', 'June', 
+                             'July', 'August', 'September', 'October', 'November', 'December'];
+              return `${months[date.getMonth()]} ${date.getFullYear()}`;
+            };
+
             const period = exp.is_current
-              ? `${exp.start_date} - Present`
-              : `${exp.start_date} - ${exp.end_date}`;
+              ? `${formatDate(exp.start_date)} - Present`
+              : `${formatDate(exp.start_date)} - ${formatDate(exp.end_date)}`;
 
             return (
               <div key={index} className="timeline-item">

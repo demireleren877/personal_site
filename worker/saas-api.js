@@ -275,7 +275,7 @@ async function getSiteData(path, env, corsHeaders) {
             break;
         case 'education':
             const education = await env.DB.prepare(
-                'SELECT * FROM site_education WHERE site_id = ? ORDER BY start_date DESC, order_index'
+                'SELECT id, site_id, degree, school, start_date, end_date, is_current, field_of_study, order_index, created_at, updated_at FROM site_education WHERE site_id = ? ORDER BY start_date DESC, order_index'
             ).bind(site.id).all();
 
             data = await Promise.all(
@@ -390,15 +390,17 @@ async function updateSiteData(path, request, userId, env, corsHeaders) {
                 console.log('Processing experience:', exp);
                 const endDate = exp.end_date || '';
                 console.log('end_date:', endDate);
+                const isCurrent = !endDate || endDate === '';
 
                 const result = await env.DB.prepare(
-                    'INSERT INTO site_experiences (site_id, title, company, start_date, end_date, description, order_index) VALUES (?, ?, ?, ?, ?, ?, ?)'
+                    'INSERT INTO site_experiences (site_id, title, company, start_date, end_date, is_current, description, order_index) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
                 ).bind(
                     site.id,
                     exp.title || exp.position || '',
                     exp.company || '',
                     exp.start_date || '',
                     endDate,
+                    isCurrent ? 1 : 0,
                     exp.description || '',
                     i
                 ).run();
@@ -421,23 +423,42 @@ async function updateSiteData(path, request, userId, env, corsHeaders) {
 
         // Update education
         if (data.education) {
-            // Clear existing education
+            // Clear existing education and achievements
+            await env.DB.prepare('DELETE FROM site_education_achievements WHERE education_id IN (SELECT id FROM site_education WHERE site_id = ?)').bind(site.id).run();
             await env.DB.prepare('DELETE FROM site_education WHERE site_id = ?').bind(site.id).run();
 
             // Insert new education
             for (let i = 0; i < data.education.length; i++) {
                 const edu = data.education[i];
-                await env.DB.prepare(
-                    'INSERT INTO site_education (site_id, degree, school, start_date, end_date, description, order_index) VALUES (?, ?, ?, ?, ?, ?, ?)'
+                const endDate = edu.end_date || '';
+                const isCurrent = !endDate || endDate === '';
+                
+                const result = await env.DB.prepare(
+                    'INSERT INTO site_education (site_id, degree, school, start_date, end_date, is_current, field_of_study, order_index) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
                 ).bind(
                     site.id,
                     edu.degree || '',
-                    edu.institution || '',
+                    edu.institution || edu.school || '',
                     edu.start_date || '',
-                    edu.end_date || '',
-                    edu.field || '',
+                    endDate,
+                    isCurrent ? 1 : 0,
+                    edu.field || edu.field_of_study || '',
                     i
                 ).run();
+
+                // Insert achievements for this education
+                if (edu.achievements && edu.achievements.length > 0) {
+                    for (let j = 0; j < edu.achievements.length; j++) {
+                        const achievement = edu.achievements[j];
+                        await env.DB.prepare(
+                            'INSERT INTO site_education_achievements (education_id, achievement, order_index) VALUES (?, ?, ?)'
+                        ).bind(
+                            result.meta.last_row_id,
+                            achievement.achievement || '',
+                            j
+                        ).run();
+                    }
+                }
             }
         }
 
@@ -449,13 +470,16 @@ async function updateSiteData(path, request, userId, env, corsHeaders) {
             // Insert new competencies
             for (let i = 0; i < data.competencies.length; i++) {
                 const comp = data.competencies[i];
+                // Use custom name if OTHER is selected
+                const displayName = (comp.name === 'OTHER' && comp.customName) ? comp.customName : comp.name;
+                
                 await env.DB.prepare(
-                    'INSERT INTO site_competencies (site_id, name, level, order_index) VALUES (?, ?, ?, ?)'
+                    'INSERT INTO site_competencies (site_id, name, order_index, icon_url) VALUES (?, ?, ?, ?)'
                 ).bind(
                     site.id,
-                    comp.name || '',
-                    comp.level || 5,
-                    i
+                    displayName || '',
+                    i,
+                    '' // Empty icon_url for now
                 ).run();
             }
         }
@@ -468,13 +492,17 @@ async function updateSiteData(path, request, userId, env, corsHeaders) {
             // Insert new tools
             for (let i = 0; i < data.tools.length; i++) {
                 const tool = data.tools[i];
+                // Use custom name if OTHER is selected
+                const displayName = (tool.name === 'OTHER' && tool.customName) ? tool.customName : tool.name;
+                
                 await env.DB.prepare(
-                    'INSERT INTO site_tools (site_id, name, level, order_index) VALUES (?, ?, ?, ?)'
+                    'INSERT INTO site_tools (site_id, name, usage_purpose, order_index, icon_url) VALUES (?, ?, ?, ?, ?)'
                 ).bind(
                     site.id,
-                    tool.name || '',
-                    tool.level || 5,
-                    i
+                    displayName || '',
+                    tool.usage_purpose || '',
+                    i,
+                    '' // Empty icon_url for now
                 ).run();
             }
         }
@@ -487,13 +515,17 @@ async function updateSiteData(path, request, userId, env, corsHeaders) {
             // Insert new languages
             for (let i = 0; i < data.languages.length; i++) {
                 const lang = data.languages[i];
+                // Use custom name if OTHER is selected
+                const displayName = (lang.name === 'OTHER' && lang.customName) ? lang.customName : lang.name;
+                
                 await env.DB.prepare(
-                    'INSERT INTO site_languages (site_id, name, level, order_index) VALUES (?, ?, ?, ?)'
+                    'INSERT INTO site_languages (site_id, name, level, order_index, flag_emoji) VALUES (?, ?, ?, ?, ?)'
                 ).bind(
                     site.id,
-                    lang.name || '',
+                    displayName || '',
                     lang.level || 5,
-                    i
+                    i,
+                    '' // Empty flag_emoji - will use flag images instead
                 ).run();
             }
         }
@@ -509,6 +541,18 @@ async function updateSiteData(path, request, userId, env, corsHeaders) {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
     }
+}
+
+// Checks if a column exists in a table
+async function columnExists(env, tableName, columnName) {
+    const info = await env.DB.prepare(`PRAGMA table_info(${tableName})`).all();
+    const rows = info.results || [];
+    for (let i = 0; i < rows.length; i++) {
+        if (rows[i].name === columnName) {
+            return true;
+        }
+    }
+    return false;
 }
 
 // Get themes
@@ -585,7 +629,7 @@ async function getMainSiteExperiences(env, corsHeaders) {
 
 async function getMainSiteEducation(env, corsHeaders) {
     const education = await env.DB.prepare(
-        'SELECT * FROM site_education WHERE site_id = 1 ORDER BY start_date DESC, order_index'
+        'SELECT id, site_id, degree, school, start_date, end_date, is_current, field_of_study, order_index, created_at, updated_at FROM site_education WHERE site_id = 1 ORDER BY start_date DESC, order_index'
     ).all();
 
     return new Response(JSON.stringify(education.results), {

@@ -26,6 +26,11 @@ const SiteBuilder = ({ siteId, onSave }) => {
     const [loading, setLoading] = useState(false);
     const [expandedExperiences, setExpandedExperiences] = useState({});
     const [expandedEducation, setExpandedEducation] = useState({});
+    const [expandedSkills, setExpandedSkills] = useState({
+        competencies: true,
+        tools: true,
+        languages: true
+    });
 
     useEffect(() => {
         loadSiteData();
@@ -58,7 +63,15 @@ const SiteBuilder = ({ siteId, onSave }) => {
 
             const heroData = heroRes.ok ? await heroRes.json() : null;
             const experiences = experiencesRes.ok ? await experiencesRes.json() : [];
-            const education = educationRes.ok ? await educationRes.json() : [];
+            const educationRaw = educationRes.ok ? await educationRes.json() : [];
+            console.log('Education API response:', educationRaw);
+            // Map API fields to form model for education
+            const education = (educationRaw || []).map((e) => ({
+                ...e,
+                institution: e.institution !== undefined ? e.institution : (e.school || ''),
+                field: e.field !== undefined ? e.field : (e.field_of_study || ''),
+            }));
+            console.log('Mapped education data:', education);
             const competencies = competenciesRes.ok ? await competenciesRes.json() : [];
             const tools = toolsRes.ok ? await toolsRes.json() : [];
             const languages = languagesRes.ok ? await languagesRes.json() : [];
@@ -108,9 +121,23 @@ const SiteBuilder = ({ siteId, onSave }) => {
                 }
             }
 
+            // Education tarih kontrolü
+            for (let i = 0; i < siteData.education.length; i++) {
+                const edu = siteData.education[i];
+                if (edu.start_date && edu.end_date && edu.end_date !== '') {
+                    if (new Date(edu.end_date) < new Date(edu.start_date)) {
+                        alert(`Education ${i + 1}: End date cannot be earlier than start date. Please fix the dates.`);
+                        setLoading(false);
+                        return;
+                    }
+                }
+            }
+
             console.log('Saving site data:', siteData);
             console.log('Experiences:', siteData.experiences);
             await onSave(siteData);
+            // Kaydetten sonra sunucudaki güncel veriyi yeniden yükle
+            await loadSiteData();
         } catch (error) {
             console.error('Error saving site:', error);
         } finally {
@@ -228,6 +255,34 @@ const SiteBuilder = ({ siteId, onSave }) => {
         setExpandedEducation(prev => ({
             ...prev,
             [index]: !prev[index]
+        }));
+    };
+
+    const toggleSkills = (section) => {
+        setExpandedSkills(prev => ({
+            ...prev,
+            [section]: !prev[section]
+        }));
+    };
+
+    const removeCompetency = (index) => {
+        setSiteData(prev => ({
+            ...prev,
+            competencies: prev.competencies.filter((_, i) => i !== index)
+        }));
+    };
+
+    const removeTool = (index) => {
+        setSiteData(prev => ({
+            ...prev,
+            tools: prev.tools.filter((_, i) => i !== index)
+        }));
+    };
+
+    const removeLanguage = (index) => {
+        setSiteData(prev => ({
+            ...prev,
+            languages: prev.languages.filter((_, i) => i !== index)
         }));
     };
 
@@ -562,7 +617,7 @@ const SiteBuilder = ({ siteId, onSave }) => {
                                     {expandedEducation[index] && (
                                         <div className="card-content">
                                             <div className="form-group">
-                                                <label>Institution</label>
+                                            <label>School</label>
                                                 <input
                                                     type="text"
                                                     value={edu.institution}
@@ -592,20 +647,76 @@ const SiteBuilder = ({ siteId, onSave }) => {
                                                 <div className="form-group">
                                                     <label>Start Date</label>
                                                     <input
-                                                        type="text"
+                                                        type="date"
                                                         value={edu.start_date}
                                                         onChange={(e) => updateEducation(index, 'start_date', e.target.value)}
-                                                        placeholder="2018"
                                                     />
                                                 </div>
                                                 <div className="form-group">
                                                     <label>End Date</label>
                                                     <input
-                                                        type="text"
-                                                        value={edu.end_date}
+                                                        type="date"
+                                                        value={edu.end_date || ''}
                                                         onChange={(e) => updateEducation(index, 'end_date', e.target.value)}
-                                                        placeholder="2022"
+                                                        disabled={!edu.end_date || edu.end_date === ''}
                                                     />
+                                                </div>
+                                            </div>
+                                            <div className="present-option">
+                                                <span className="present-label">Present</span>
+                                                <label className="toggle-switch">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={!edu.end_date || edu.end_date === ''}
+                                                        onChange={(e) => {
+                                                            if (e.target.checked) {
+                                                                updateEducation(index, 'end_date', '');
+                                                            } else {
+                                                                const today = new Date().toISOString().split('T')[0];
+                                                                updateEducation(index, 'end_date', today);
+                                                            }
+                                                        }}
+                                                    />
+                                                    <span className="toggle-slider"></span>
+                                                </label>
+                                            </div>
+                                            <div className="form-group">
+                                                <label>Key Achievements</label>
+                                                <div className="achievements-list">
+                                                    {edu.achievements && edu.achievements.map((achievement, achIndex) => (
+                                                        <div key={achIndex} className="achievement-item">
+                                                            <input
+                                                                type="text"
+                                                                value={achievement.achievement}
+                                                                onChange={(e) => {
+                                                                    const newAchievements = [...edu.achievements];
+                                                                    newAchievements[achIndex] = { achievement: e.target.value };
+                                                                    updateEducation(index, 'achievements', newAchievements);
+                                                                }}
+                                                                placeholder={`Achievement ${achIndex + 1}`}
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const newAchievements = edu.achievements.filter((_, i) => i !== achIndex);
+                                                                    updateEducation(index, 'achievements', newAchievements);
+                                                                }}
+                                                                className="remove-achievement-btn"
+                                                            >
+                                                                ×
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const newAchievements = [...(edu.achievements || []), { achievement: '' }];
+                                                            updateEducation(index, 'achievements', newAchievements);
+                                                        }}
+                                                        className="add-achievement-btn"
+                                                    >
+                                                        + Add Achievement
+                                                    </button>
                                                 </div>
                                             </div>
                                         </div>
@@ -620,103 +731,229 @@ const SiteBuilder = ({ siteId, onSave }) => {
                             <h3>Skills Section</h3>
 
                             <div className="skills-categories">
-                                <div className="skill-category">
-                                    <div className="section-header">
+                                <div className="skill-category-card">
+                                    <div className="skill-category-header" onClick={() => toggleSkills('competencies')}>
                                         <h4>Competencies</h4>
-                                        <button className="add-btn" onClick={addCompetency}>
-                                            + Add Competency
-                                        </button>
-                                    </div>
-
-                                    {siteData.competencies.map((comp, index) => (
-                                        <div key={index} className="skill-editor">
-                                            <div className="form-group">
-                                                <label>Competency</label>
-                                                <input
-                                                    type="text"
-                                                    value={comp.name}
-                                                    onChange={(e) => updateCompetency(index, 'name', e.target.value)}
-                                                    placeholder="Business Development"
-                                                />
-                                            </div>
-                                            <div className="form-group">
-                                                <label>Level (1-10)</label>
-                                                <input
-                                                    type="number"
-                                                    min="1"
-                                                    max="10"
-                                                    value={comp.level}
-                                                    onChange={(e) => updateCompetency(index, 'level', parseInt(e.target.value))}
-                                                />
-                                            </div>
+                                        <div className="skill-header-right">
+                                            <button className="add-btn" onClick={(e) => { e.stopPropagation(); addCompetency(); }}>
+                                                + Add Competency
+                                            </button>
+                                            <span className={`expand-icon ${expandedSkills.competencies ? 'expanded' : ''}`}>
+                                                ▼
+                                            </span>
                                         </div>
-                                    ))}
+                                    </div>
+                                    {expandedSkills.competencies && (
+                                        <div className="skill-items">
+                                        {siteData.competencies.map((comp, index) => (
+                                            <div key={index} className="skill-item">
+                                                <div className="skill-inputs">
+                                                    <select
+                                                        value={comp.name}
+                                                        onChange={(e) => updateCompetency(index, 'name', e.target.value)}
+                                                        className="skill-select"
+                                                    >
+                                                        <option value="">Select Competency</option>
+                                                        <option value="Business Development">Business Development</option>
+                                                        <option value="Strategic Planning">Strategic Planning</option>
+                                                        <option value="Project Management">Project Management</option>
+                                                        <option value="Data Analysis">Data Analysis</option>
+                                                        <option value="Problem Solving">Problem Solving</option>
+                                                        <option value="Leadership">Leadership</option>
+                                                        <option value="Communication">Communication</option>
+                                                        <option value="Team Management">Team Management</option>
+                                                        <option value="Financial Analysis">Financial Analysis</option>
+                                                        <option value="Process Improvement">Process Improvement</option>
+                                                        <option value="Risk Management">Risk Management</option>
+                                                        <option value="Customer Relations">Customer Relations</option>
+                                                        <option value="Sales & Marketing">Sales & Marketing</option>
+                                                        <option value="Operations Management">Operations Management</option>
+                                                        <option value="Quality Assurance">Quality Assurance</option>
+                                                        <option value="OTHER">Other (Custom)</option>
+                                                    </select>
+                                                    {comp.name === 'OTHER' && (
+                                                        <input
+                                                            type="text"
+                                                            value={comp.customName || ''}
+                                                            onChange={(e) => updateCompetency(index, 'customName', e.target.value)}
+                                                            placeholder="Enter custom competency"
+                                                            className="custom-skill-input"
+                                                        />
+                                                    )}
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeCompetency(index)}
+                                                    className="remove-skill-btn"
+                                                    title="Remove competency"
+                                                >
+                                                    ×
+                                                </button>
+                                            </div>
+                                        ))}
+                                        </div>
+                                    )}
                                 </div>
 
-                                <div className="skill-category">
-                                    <div className="section-header">
+                                <div className="skill-category-card">
+                                    <div className="skill-category-header" onClick={() => toggleSkills('tools')}>
                                         <h4>Tools & Software</h4>
-                                        <button className="add-btn" onClick={addTool}>
-                                            + Add Tool
-                                        </button>
-                                    </div>
-
-                                    {siteData.tools.map((tool, index) => (
-                                        <div key={index} className="skill-editor">
-                                            <div className="form-group">
-                                                <label>Tool</label>
-                                                <input
-                                                    type="text"
-                                                    value={tool.name}
-                                                    onChange={(e) => updateTool(index, 'name', e.target.value)}
-                                                    placeholder="Python"
-                                                />
-                                            </div>
-                                            <div className="form-group">
-                                                <label>Level (1-10)</label>
-                                                <input
-                                                    type="number"
-                                                    min="1"
-                                                    max="10"
-                                                    value={tool.level}
-                                                    onChange={(e) => updateTool(index, 'level', parseInt(e.target.value))}
-                                                />
-                                            </div>
+                                        <div className="skill-header-right">
+                                            <button className="add-btn" onClick={(e) => { e.stopPropagation(); addTool(); }}>
+                                                + Add Tool
+                                            </button>
+                                            <span className={`expand-icon ${expandedSkills.tools ? 'expanded' : ''}`}>
+                                                ▼
+                                            </span>
                                         </div>
-                                    ))}
+                                    </div>
+                                    {expandedSkills.tools && (
+                                        <div className="skill-items">
+                                        {siteData.tools.map((tool, index) => (
+                                            <div key={index} className="skill-item">
+                                                <div className="skill-inputs">
+                                                    <select
+                                                        value={tool.name}
+                                                        onChange={(e) => updateTool(index, 'name', e.target.value)}
+                                                        className="skill-select"
+                                                    >
+                                                        <option value="">Select Tool</option>
+                                                        <option value="Python">Python</option>
+                                                        <option value="JavaScript">JavaScript</option>
+                                                        <option value="React">React</option>
+                                                        <option value="Node.js">Node.js</option>
+                                                        <option value="SQL">SQL</option>
+                                                        <option value="Excel">Excel</option>
+                                                        <option value="Power BI">Power BI</option>
+                                                        <option value="Tableau">Tableau</option>
+                                                        <option value="SAS">SAS</option>
+                                                        <option value="R">R</option>
+                                                        <option value="Java">Java</option>
+                                                        <option value="C++">C++</option>
+                                                        <option value="Git">Git</option>
+                                                        <option value="Docker">Docker</option>
+                                                        <option value="AWS">AWS</option>
+                                                        <option value="Azure">Azure</option>
+                                                        <option value="Google Cloud">Google Cloud</option>
+                                                        <option value="MongoDB">MongoDB</option>
+                                                        <option value="PostgreSQL">PostgreSQL</option>
+                                                        <option value="MySQL">MySQL</option>
+                                                        <option value="OTHER">Other (Custom)</option>
+                                                    </select>
+                                                    {tool.name === 'OTHER' && (
+                                                        <input
+                                                            type="text"
+                                                            value={tool.customName || ''}
+                                                            onChange={(e) => updateTool(index, 'customName', e.target.value)}
+                                                            placeholder="Enter custom tool"
+                                                            className="custom-skill-input"
+                                                        />
+                                                    )}
+                                                    {tool.name && tool.name !== '' && (
+                                                        <input
+                                                            type="text"
+                                                            value={tool.usage_purpose || ''}
+                                                            onChange={(e) => updateTool(index, 'usage_purpose', e.target.value)}
+                                                            placeholder="Usage purpose (e.g., Data Analysis, Web Development)"
+                                                            className="custom-skill-input"
+                                                        />
+                                                    )}
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeTool(index)}
+                                                    className="remove-skill-btn"
+                                                    title="Remove tool"
+                                                >
+                                                    ×
+                                                </button>
+                                            </div>
+                                        ))}
+                                        </div>
+                                    )}
                                 </div>
 
-                                <div className="skill-category">
-                                    <div className="section-header">
+                                <div className="skill-category-card">
+                                    <div className="skill-category-header" onClick={() => toggleSkills('languages')}>
                                         <h4>Languages</h4>
-                                        <button className="add-btn" onClick={addLanguage}>
-                                            + Add Language
-                                        </button>
-                                    </div>
-
-                                    {siteData.languages.map((lang, index) => (
-                                        <div key={index} className="skill-editor">
-                                            <div className="form-group">
-                                                <label>Language</label>
-                                                <input
-                                                    type="text"
-                                                    value={lang.name}
-                                                    onChange={(e) => updateLanguage(index, 'name', e.target.value)}
-                                                    placeholder="English"
-                                                />
-                                            </div>
-                                            <div className="form-group">
-                                                <label>Level (1-10)</label>
-                                                <input
-                                                    type="number"
-                                                    min="1"
-                                                    max="10"
-                                                    value={lang.level}
-                                                    onChange={(e) => updateLanguage(index, 'level', parseInt(e.target.value))}
-                                                />
-                                            </div>
+                                        <div className="skill-header-right">
+                                            <button className="add-btn" onClick={(e) => { e.stopPropagation(); addLanguage(); }}>
+                                                + Add Language
+                                            </button>
+                                            <span className={`expand-icon ${expandedSkills.languages ? 'expanded' : ''}`}>
+                                                ▼
+                                            </span>
                                         </div>
-                                    ))}
+                                    </div>
+                                    {expandedSkills.languages && (
+                                        <div className="skill-items">
+                                        {siteData.languages.map((lang, index) => (
+                                            <div key={index} className="skill-item">
+                                                <div className="skill-inputs">
+                                                    <select
+                                                        value={lang.name}
+                                                        onChange={(e) => updateLanguage(index, 'name', e.target.value)}
+                                                        className="skill-select"
+                                                    >
+                                                        <option value="">Select Language</option>
+                                                        <option value="Turkish">Turkish</option>
+                                                        <option value="English">English</option>
+                                                        <option value="Spanish">Spanish</option>
+                                                        <option value="French">French</option>
+                                                        <option value="German">German</option>
+                                                        <option value="Italian">Italian</option>
+                                                        <option value="Portuguese">Portuguese</option>
+                                                        <option value="Russian">Russian</option>
+                                                        <option value="Chinese">Chinese</option>
+                                                        <option value="Japanese">Japanese</option>
+                                                        <option value="Korean">Korean</option>
+                                                        <option value="Arabic">Arabic</option>
+                                                        <option value="Dutch">Dutch</option>
+                                                        <option value="Swedish">Swedish</option>
+                                                        <option value="Norwegian">Norwegian</option>
+                                                        <option value="Danish">Danish</option>
+                                                        <option value="Finnish">Finnish</option>
+                                                        <option value="Polish">Polish</option>
+                                                        <option value="Czech">Czech</option>
+                                                        <option value="Hungarian">Hungarian</option>
+                                                        <option value="OTHER">Other (Custom)</option>
+                                                    </select>
+                                                    {lang.name === 'OTHER' && (
+                                                        <input
+                                                            type="text"
+                                                            value={lang.customName || ''}
+                                                            onChange={(e) => updateLanguage(index, 'customName', e.target.value)}
+                                                            placeholder="Enter custom language"
+                                                            className="custom-skill-input"
+                                                        />
+                                                    )}
+                                                    {lang.name && lang.name !== '' && (
+                                                        <select
+                                                            value={lang.level || ''}
+                                                            onChange={(e) => updateLanguage(index, 'level', e.target.value)}
+                                                            className="level-select"
+                                                        >
+                                                            <option value="">Select Level</option>
+                                                            <option value="Native">Native</option>
+                                                            <option value="Fluent">Fluent</option>
+                                                            <option value="Advanced">Advanced</option>
+                                                            <option value="Intermediate">Intermediate</option>
+                                                            <option value="Beginner">Beginner</option>
+                                                        </select>
+                                                    )}
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeLanguage(index)}
+                                                    className="remove-skill-btn"
+                                                    title="Remove language"
+                                                >
+                                                    ×
+                                                </button>
+                                            </div>
+                                        ))}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>

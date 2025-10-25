@@ -82,9 +82,17 @@ const Education = ({ education: propEducation }) => {
 
         <div className="education-timeline">
           {education.map((edu, index) => {
+            const formatDate = (dateStr) => {
+              if (!dateStr) return '';
+              const date = new Date(dateStr);
+              const months = ['January', 'February', 'March', 'April', 'May', 'June', 
+                             'July', 'August', 'September', 'October', 'November', 'December'];
+              return `${months[date.getMonth()]} ${date.getFullYear()}`;
+            };
+
             const period = edu.is_current
-              ? `${edu.start_date} - Present`
-              : `${edu.start_date} - ${edu.end_date}`;
+              ? `${formatDate(edu.start_date)} - Present`
+              : `${formatDate(edu.start_date)} - ${formatDate(edu.end_date)}`;
 
             return (
               <div key={index} className="timeline-item">
@@ -96,24 +104,24 @@ const Education = ({ education: propEducation }) => {
                 <div className="timeline-content">
                   <div className="education-card">
                     <div className="education-header">
-                      <h3 className="education-degree">{edu.degree}</h3>
+                      <h3 className="education-degree">{edu.field_of_study || edu.description}</h3>
                       <div className="education-school">{edu.school}</div>
                       <div className="education-period">{period}</div>
                     </div>
 
-                    <p className="education-description">{edu.description}</p>
-
-                    <div className="education-achievements">
-                      <h4 className="achievements-title">Key Highlights:</h4>
-                      <ul className="achievements-list">
-                        {edu.achievements && edu.achievements.map((achievement, idx) => (
-                          <li key={idx} className="achievement-item">
-                            <span className="achievement-icon">✓</span>
-                            {achievement.achievement}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
+                    {edu.achievements && edu.achievements.length > 0 && (
+                      <div className="education-achievements">
+                        <h4 className="achievements-title">Key Achievements:</h4>
+                        <ul className="achievements-list">
+                          {edu.achievements.map((achievement, idx) => (
+                            <li key={idx} className="achievement-item">
+                              <span className="achievement-icon">✓</span>
+                              {achievement.achievement}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
