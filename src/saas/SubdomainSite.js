@@ -1,7 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { apiClient } from '../utils/apiClient';
-import { handleError } from '../utils/errorHandler';
-import LoadingSpinner from '../components/LoadingSpinner';
 import Header from '../components/Header';
 import Hero from '../components/Hero';
 import Experience from '../components/Experience';
@@ -27,14 +24,14 @@ const SubdomainSite = ({ subdomain }) => {
             setLoading(true);
             setError(null);
 
-            // Load all site data using apiClient
+            // Load all site data
             const [heroRes, experiencesRes, educationRes, competenciesRes, toolsRes, languagesRes] = await Promise.all([
-                apiClient.get(`/api/site/${subdomain}/hero`),
-                apiClient.get(`/api/site/${subdomain}/experiences`),
-                apiClient.get(`/api/site/${subdomain}/education`),
-                apiClient.get(`/api/site/${subdomain}/competencies`),
-                apiClient.get(`/api/site/${subdomain}/tools`),
-                apiClient.get(`/api/site/${subdomain}/languages`)
+                fetch(`https://personal-site-saas-api.l5819033.workers.dev/api/site/${subdomain}/hero`),
+                fetch(`https://personal-site-saas-api.l5819033.workers.dev/api/site/${subdomain}/experiences`),
+                fetch(`https://personal-site-saas-api.l5819033.workers.dev/api/site/${subdomain}/education`),
+                fetch(`https://personal-site-saas-api.l5819033.workers.dev/api/site/${subdomain}/competencies`),
+                fetch(`https://personal-site-saas-api.l5819033.workers.dev/api/site/${subdomain}/tools`),
+                fetch(`https://personal-site-saas-api.l5819033.workers.dev/api/site/${subdomain}/languages`)
             ]);
 
             const hero = heroRes.ok ? await heroRes.json() : { name: '', title: '', description: '', github_url: '', linkedin_url: '' };
@@ -54,9 +51,8 @@ const SubdomainSite = ({ subdomain }) => {
             });
 
         } catch (error) {
-            const errorInfo = handleError(error, 'Subdomain site load');
-            console.error('Error loading site data:', errorInfo);
-            setError(errorInfo.message);
+            console.error('Error loading site data:', error);
+            setError('Site yüklenirken hata oluştu');
         } finally {
             setLoading(false);
         }
@@ -67,7 +63,12 @@ const SubdomainSite = ({ subdomain }) => {
     }, [loadSiteData]);
 
     if (loading) {
-        return <LoadingSpinner fullscreen text="Site yükleniyor..." />;
+        return (
+            <div className="subdomain-loading">
+                <div className="loading-spinner"></div>
+                <p>Site yükleniyor...</p>
+            </div>
+        );
     }
 
     if (error) {

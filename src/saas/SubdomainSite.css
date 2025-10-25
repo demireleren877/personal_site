@@ -38,37 +38,19 @@
     }
 }
 
-.subdomain-error {
-    background: #1f2937;
-    color: white;
-}
-
 .subdomain-error h2 {
     color: #ef4444;
     margin-bottom: 1rem;
-    font-size: 2rem;
-}
-
-.subdomain-error p {
-    color: #d1d5db;
-    margin-bottom: 2rem;
-    font-size: 1.125rem;
 }
 
 .home-link {
-    color: #60a5fa;
+    color: #3b82f6;
     text-decoration: none;
     font-weight: 500;
-    padding: 0.75rem 1.5rem;
-    border: 1px solid #60a5fa;
-    border-radius: 8px;
-    transition: all 0.2s;
 }
 
 .home-link:hover {
-    background: #60a5fa;
-    color: #1f2937;
-    text-decoration: none;
+    text-decoration: underline;
 }
 
 /* Hero Section */

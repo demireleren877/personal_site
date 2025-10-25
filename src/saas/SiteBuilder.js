@@ -1,7 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { apiClient } from '../utils/apiClient';
-import { handleError, handleApiResponse } from '../utils/errorHandler';
-import LoadingSpinner from '../components/LoadingSpinner';
 import './SiteBuilder.css';
 
 const SiteBuilder = ({ siteId, onSave }) => {
@@ -49,24 +46,25 @@ const SiteBuilder = ({ siteId, onSave }) => {
         try {
             setLoading(true);
 
+            const token = localStorage.getItem('token');
             const userData = localStorage.getItem('user');
 
-            if (!userData) {
+            if (!token || !userData) {
                 setLoading(false);
                 return;
             }
 
             const user = JSON.parse(userData);
-            const subdomain = user.displayName?.toLowerCase().replace(/\s+/g, '-') || 'user';
+            const subdomain = user.name?.toLowerCase().replace(/\s+/g, '-') || 'user';
 
-            // Load existing site data from API using apiClient
+            // Load existing site data from API
             const [heroRes, experiencesRes, educationRes, competenciesRes, toolsRes, languagesRes] = await Promise.all([
-                apiClient.get(`/api/site/${subdomain}/hero`),
-                apiClient.get(`/api/site/${subdomain}/experiences`),
-                apiClient.get(`/api/site/${subdomain}/education`),
-                apiClient.get(`/api/site/${subdomain}/competencies`),
-                apiClient.get(`/api/site/${subdomain}/tools`),
-                apiClient.get(`/api/site/${subdomain}/languages`)
+                fetch(`https://personal-site-saas-api.l5819033.workers.dev/api/site/${subdomain}/hero`),
+                fetch(`https://personal-site-saas-api.l5819033.workers.dev/api/site/${subdomain}/experiences`),
+                fetch(`https://personal-site-saas-api.l5819033.workers.dev/api/site/${subdomain}/education`),
+                fetch(`https://personal-site-saas-api.l5819033.workers.dev/api/site/${subdomain}/competencies`),
+                fetch(`https://personal-site-saas-api.l5819033.workers.dev/api/site/${subdomain}/tools`),
+                fetch(`https://personal-site-saas-api.l5819033.workers.dev/api/site/${subdomain}/languages`)
             ]);
 
             const heroData = heroRes.ok ? await heroRes.json() : null;
@@ -107,8 +105,7 @@ const SiteBuilder = ({ siteId, onSave }) => {
                 languages: languages || []
             });
         } catch (error) {
-            const errorInfo = handleError(error, 'Site data load');
-            console.error('Error loading site data:', errorInfo);
+            console.error('Error loading site data:', error);
         } finally {
             setLoading(false);
         }
@@ -120,7 +117,7 @@ const SiteBuilder = ({ siteId, onSave }) => {
             if (!userData) return;
 
             const user = JSON.parse(userData);
-            const response = await apiClient.get('/api/user/sites', {
+            const response = await fetch('https://personal-site-saas-api.l5819033.workers.dev/api/user/sites', {
                 headers: {
                     'Authorization': `Bearer ${user.uid}`
                 }
@@ -131,8 +128,7 @@ const SiteBuilder = ({ siteId, onSave }) => {
                 setSites(sitesData);
             }
         } catch (error) {
-            const errorInfo = handleError(error, 'User sites fetch');
-            console.error('Error fetching user sites:', errorInfo);
+            console.error('Error fetching user sites:', error);
         }
     };
 
@@ -174,31 +170,46 @@ const SiteBuilder = ({ siteId, onSave }) => {
                     return;
                 }
 
-                const response = await apiClient.post('/api/user/domain', {
-                    site_id: selectedSite.id,
-                    custom_domain: fullDomain
-                }, {
+                const response = await fetch('https://personal-site-saas-api.l5819033.workers.dev/api/user/domain', {
+                    method: 'POST',
                     headers: {
+                        'Content-Type': 'application/json',
                         'Authorization': `Bearer ${user.uid}`
-                    }
+                    },
+                    body: JSON.stringify({
+                        site_id: selectedSite.id,
+                        custom_domain: fullDomain
+                    })
                 });
 
-                const result = await handleApiResponse(response, 'Domain management');
-                
-                if (result.message === 'Domain already exists') {
-                    alert('Bu domain zaten kullanımda! Lütfen farklı bir domain seçin.');
-                } else if (result.message === 'Domain updated successfully') {
-                    alert('Domain başarıyla güncellendi! Eski domain kaldırıldı ve yeni domain eklendi.');
-                    setShowDomainModal(false);
-                    fetchUserSites(); // Refresh sites list
+                if (response.ok) {
+                    const result = await response.json();
+                    
+                    if (result.message === 'Domain already exists') {
+                        alert('Bu domain zaten kullanımda! Lütfen farklı bir domain seçin.');
+                    } else if (result.message === 'Domain updated successfully') {
+                        alert('Domain başarıyla güncellendi! Eski domain kaldırıldı ve yeni domain eklendi.');
+                        setShowDomainModal(false);
+                        fetchUserSites(); // Refresh sites list
+                    } else {
+                        alert('Custom domain başarıyla eklendi!');
+                        setShowDomainModal(false);
+                        fetchUserSites(); // Refresh sites list
+                    }
                 } else {
-                    alert(result.message);
-                    setShowDomainModal(false);
-                    fetchUserSites(); // Refresh sites list
+                    const error = await response.json();
+                    
+                    if (error.error && error.error.includes('already exists')) {
+                        alert('Bu domain zaten kullanımda! Lütfen farklı bir domain seçin.');
+                    } else if (error.error && error.error.includes('invalid TLD')) {
+                        alert('Geçersiz domain formatı! Lütfen sadece subdomain kısmını girin (örn: ornek).');
+                    } else {
+                        alert(`Hata: ${error.error || 'Domain eklenemedi'}`);
+                    }
                 }
             } catch (error) {
-                const errorInfo = handleError(error, 'Domain management');
-                alert(`Hata: ${errorInfo.message}`);
+                console.error('Error adding custom domain:', error);
+                alert('Domain eklenirken hata oluştu!');
             } finally {
                 setDomainLoading(false);
             }
@@ -245,8 +256,7 @@ const SiteBuilder = ({ siteId, onSave }) => {
             // Kaydetten sonra sunucudaki güncel veriyi yeniden yükle
             await loadSiteData();
         } catch (error) {
-            const errorInfo = handleError(error, 'Site save');
-            console.error('Error saving site:', errorInfo);
+            console.error('Error saving site:', error);
         } finally {
             setLoading(false);
         }
@@ -396,7 +406,12 @@ const SiteBuilder = ({ siteId, onSave }) => {
     // Removed unused highlight functions
 
     if (loading) {
-        return <LoadingSpinner fullscreen text="Site builder yükleniyor..." />;
+        return (
+            <div className="site-builder-loading">
+                <div className="loading-spinner"></div>
+                <p>Loading site builder...</p>
+            </div>
+        );
     }
 
     return (

@@ -5,24 +5,11 @@ export default {
         const path = url.pathname;
         const method = request.method;
 
-        // CORS headers with security improvements
-        const origin = request.headers.get('Origin');
-        const allowedOrigins = [
-            'http://localhost:3000',
-            'https://erendemirel.pages.dev',
-            'https://erendemirel.com.tr',
-            'https://www.erendemirel.com.tr'
-        ];
-        
+        // CORS headers
         const corsHeaders = {
-            'Access-Control-Allow-Origin': allowedOrigins.includes(origin) ? origin : 'https://erendemirel.pages.dev',
+            'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
             'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-            'Access-Control-Allow-Credentials': 'true',
-            'Access-Control-Max-Age': '86400', // 24 hours
-            'X-Content-Type-Options': 'nosniff',
-            'X-Frame-Options': 'DENY',
-            'X-XSS-Protection': '1; mode=block'
         };
 
         // Handle preflight requests
@@ -50,9 +37,7 @@ export default {
             }
 
             // Protected routes
-            if (path === '/api/user/check' && method === 'GET') {
-                return await checkUserRegistration(authResult.userId, env, corsHeaders);
-            } else if (path === '/api/user/profile' && method === 'GET') {
+            if (path === '/api/user/profile' && method === 'GET') {
                 return await getUserProfile(authResult.userId, env, corsHeaders);
             } else if (path === '/api/user/sites' && method === 'GET') {
                 return await getUserSites(authResult.userId, env, corsHeaders);
@@ -98,29 +83,6 @@ export default {
     },
 };
 
-// Firebase UID validation helper
-function isValidFirebaseUID(token) {
-    // Firebase UID format validation:
-    // - Length between 20-30 characters (Firebase UIDs can vary)
-    // - Only alphanumeric characters
-    // - Not empty
-    if (!token || typeof token !== 'string') {
-        return false;
-    }
-    
-    const trimmedToken = token.trim();
-    if (trimmedToken.length < 20 || trimmedToken.length > 30) {
-        return false;
-    }
-    
-    // Only alphanumeric characters
-    if (!/^[A-Za-z0-9]+$/.test(trimmedToken)) {
-        return false;
-    }
-    
-    return true;
-}
-
 // Authentication helper
 async function authenticateUser(request, env) {
     const authHeader = request.headers.get('Authorization');
@@ -130,8 +92,8 @@ async function authenticateUser(request, env) {
 
     const token = authHeader.substring(7);
     
-    // Firebase UID'yi kontrol et (güvenli format validation)
-    if (isValidFirebaseUID(token)) {
+    // Firebase UID'yi kontrol et (string format - 28 karakter, alfanumerik)
+    if (token.length === 28 && /^[A-Za-z0-9]+$/.test(token)) {
         // Firebase UID formatı
         console.log('Authenticating Firebase UID:', token);
         const user = await env.DB.prepare(
@@ -199,70 +161,47 @@ async function registerUser(request, env, corsHeaders) {
     });
 }
 
-// Firebase user registration with atomic transaction
+// Firebase user registration
 async function registerFirebaseUser(request, env, corsHeaders) {
     const { firebaseUid, email, name } = await request.json();
 
-    try {
-        // Start transaction
-        const transaction = await env.DB.batch();
+    // Check if user exists by Firebase UID
+    const existingUser = await env.DB.prepare(
+        'SELECT id FROM users WHERE firebase_uid = ? OR email = ?'
+    ).bind(firebaseUid, email).first();
 
-        // Check if user exists by Firebase UID
-        const existingUser = await env.DB.prepare(
-            'SELECT id FROM users WHERE firebase_uid = ? OR email = ?'
-        ).bind(firebaseUid, email).first();
-
-        if (existingUser) {
-            // User already exists, return success with existing user ID
-            return new Response(JSON.stringify({
-                success: true,
-                userId: existingUser.id,
-                message: 'User already exists'
-            }), {
-                status: 200,
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-            });
-        }
-
-        // Generate simple subdomain based on name
-        const baseSubdomain = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-        const subdomain = baseSubdomain;
-
-        // Prepare user insertion
-        const userInsert = env.DB.prepare(
-            'INSERT INTO users (email, password_hash, firebase_uid, name) VALUES (?, ?, ?, ?)'
-        ).bind(email, 'firebase_user', firebaseUid, name);
-
-        // Prepare site insertion (will use the user ID from the first insert)
-        const siteInsert = env.DB.prepare(
-            'INSERT INTO user_sites (user_id, subdomain, site_name, site_description, is_published) VALUES (?, ?, ?, ?, ?)'
-        );
-
-        // Execute user insert first
-        const userResult = await userInsert.run();
-        const userId = userResult.meta.last_row_id;
-
-        // Execute site insert with the user ID
-        await siteInsert.bind(userId, subdomain, `${name}'s Personal Site`, 'Personal portfolio site', true).run();
-
+    if (existingUser) {
+        // User already exists, return success with existing user ID
         return new Response(JSON.stringify({
             success: true,
-            userId: userId,
-            subdomain: subdomain
+            userId: existingUser.id,
+            message: 'User already exists'
         }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-    } catch (error) {
-        console.error('Firebase user registration error:', error);
-        return new Response(JSON.stringify({
-            success: false,
-            error: 'User registration failed',
-            details: error.message
-        }), {
-            status: 500,
+            status: 200,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
     }
+
+    // Create Firebase user (with dummy password hash for NOT NULL constraint)
+    const result = await env.DB.prepare(
+        'INSERT INTO users (email, password_hash, firebase_uid, name) VALUES (?, ?, ?, ?)'
+    ).bind(email, 'firebase_user', firebaseUid, name).run();
+
+    // Create default site for the user
+    const baseSubdomain = name.toLowerCase().replace(/\s+/g, '-');
+    const timestamp = Date.now();
+    const subdomain = `${baseSubdomain}-${timestamp}`;
+    
+    await env.DB.prepare(
+        'INSERT INTO user_sites (user_id, subdomain, site_name, site_description, is_published) VALUES (?, ?, ?, ?, ?)'
+    ).bind(result.meta.last_row_id, subdomain, `${name}'s Personal Site`, 'Personal portfolio site', true).run();
+
+    return new Response(JSON.stringify({
+        success: true,
+        userId: result.meta.last_row_id
+    }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
 }
 
 // User login
@@ -289,47 +228,6 @@ async function loginUser(request, env, corsHeaders) {
     }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
-}
-
-// Check if user is registered in D1
-async function checkUserRegistration(userId, env, corsHeaders) {
-    try {
-        const user = await env.DB.prepare(
-            'SELECT id, name, email, firebase_uid, created_at FROM users WHERE id = ?'
-        ).bind(userId).first();
-
-        if (user) {
-            return new Response(JSON.stringify({
-                registered: true,
-                user: {
-                    id: user.id,
-                    name: user.name,
-                    email: user.email,
-                    firebase_uid: user.firebase_uid,
-                    created_at: user.created_at
-                }
-            }), {
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-            });
-        } else {
-            return new Response(JSON.stringify({
-                registered: false,
-                error: 'User not found in database'
-            }), {
-                status: 404,
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-            });
-        }
-    } catch (error) {
-        console.error('Error checking user registration:', error);
-        return new Response(JSON.stringify({
-            registered: false,
-            error: 'Database error'
-        }), {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-    }
 }
 
 // Get user profile
@@ -404,9 +302,8 @@ async function getSiteData(path, env, corsHeaders) {
     ).bind(subdomain).first();
 
     if (!site) {
-        // Return default empty data instead of 404
-        return new Response(JSON.stringify([]), {
-            status: 200,
+        return new Response(JSON.stringify({ error: 'Site not found' }), {
+            status: 404,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
     }
@@ -865,7 +762,7 @@ async function createCloudflareDNSRecord(domain, env) {
     console.log('Creating DNS record for domain:', domain);
     console.log('Zone ID:', zoneId);
     console.log('API Token exists:', !!apiToken);
-    // Don't log sensitive information
+    console.log('API Token length:', apiToken ? apiToken.length : 0);
 
     if (!zoneId || !apiToken) {
         throw new Error('Cloudflare credentials not configured');
@@ -1005,7 +902,7 @@ async function removeCloudflareDNSRecord(domain, env) {
     console.log('Removing DNS record for domain:', domain);
     console.log('Zone ID:', zoneId);
     console.log('API Token exists:', !!apiToken);
-    // Don't log sensitive information
+    console.log('API Token length:', apiToken.length);
 
     // First, get all DNS records to find the one to delete
     const listResponse = await fetch(`https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records?name=${domain}`, {

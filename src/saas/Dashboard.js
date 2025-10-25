@@ -1,64 +1,102 @@
-import React from 'react';
-import { useAuth } from '../hooks/useAuth';
-import { apiClient } from '../utils/apiClient';
-import { handleError, handleApiResponse } from '../utils/errorHandler';
-import LoadingSpinner from '../components/LoadingSpinner';
+import React, { useState, useEffect } from 'react';
+import { logoutUser, getCurrentUser } from '../firebase/authService';
 import SiteBuilder from './SiteBuilder';
 import './Dashboard.css';
 
 const Dashboard = () => {
-    const { user, loading, error, logout } = useAuth();
+    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
 
     const handleLogout = async () => {
         try {
-            await logout();
+            await logoutUser();
+            localStorage.removeItem('user');
             window.location.href = '/';
         } catch (error) {
             console.error('Logout error:', error);
+            // Yine de localStorage'ı temizle
+            localStorage.removeItem('user');
             window.location.href = '/';
         }
     };
 
-    // User data is now managed by useAuth hook
-    // No need for separate fetchUserData function
+    useEffect(() => {
+        fetchUserData();
+        
+    }, []);
+
+    const fetchUserData = async () => {
+        try {
+            setLoading(true);
+
+            // Firebase'den mevcut kullanıcıyı al
+            const firebaseUser = getCurrentUser();
+            
+            if (!firebaseUser) {
+                // Kullanıcı giriş yapmamış, auth'a yönlendir
+                window.location.href = '/auth';
+                return;
+            }
+
+            // Kullanıcı bilgilerini ayarla
+            setUser({
+                uid: firebaseUser.uid,
+                email: firebaseUser.email,
+                displayName: firebaseUser.displayName,
+                emailVerified: firebaseUser.emailVerified
+            });
+
+            setLoading(false);
+        } catch (error) {
+            console.error('Error fetching user data:', error);
+            setLoading(false);
+        }
+    };
 
 
     const saveSiteData = async (data) => {
         try {
-            if (!user) {
+            const firebaseUser = getCurrentUser();
+
+            if (!firebaseUser) {
                 alert('Lütfen önce giriş yapın!');
                 return;
             }
 
-            const subdomain = user.displayName?.toLowerCase().replace(/\s+/g, '-') || 'user';
+            const subdomain = firebaseUser.displayName?.toLowerCase().replace(/\s+/g, '-') || 'user';
 
-            console.log('Saving data for user:', user.uid, 'subdomain:', subdomain);
+            console.log('Saving data for user:', firebaseUser.uid, 'subdomain:', subdomain);
 
-            // Save to API using apiClient
-            const response = await apiClient.put(`/api/site/${subdomain}`, data, {
+            // Save to API
+            const response = await fetch(`https://personal-site-saas-api.l5819033.workers.dev/api/site/${subdomain}`, {
+                method: 'PUT',
                 headers: {
-                    'Authorization': `Bearer ${user.uid}`
-                }
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${firebaseUser.uid}` // Use Firebase UID as token
+                },
+                body: JSON.stringify(data)
             });
 
-            const result = await handleApiResponse(response, 'Site data save');
-            alert(result.message);
-            console.log('Saved data:', result);
+            if (response.ok) {
+                const result = await response.json();
+                alert('Site verileri başarıyla kaydedildi!');
+                console.log('Saved data:', result);
+            } else {
+                const error = await response.json();
+                alert(`Hata: ${error.error || 'Veri kaydedilemedi'}`);
+                console.error('API Error:', error);
+            }
         } catch (error) {
-            const errorInfo = handleError(error, 'Site data save');
-            alert(`Hata: ${errorInfo.message}`);
+            console.error('Error saving site data:', error);
+            alert('Veri kaydedilirken hata oluştu!');
         }
     };
 
     if (loading) {
-        return <LoadingSpinner fullscreen text="Dashboard yükleniyor..." />;
-    }
-
-    if (error) {
         return (
-            <div className="dashboard-error">
-                <p>Hata: {error}</p>
-                <button onClick={logout}>Çıkış Yap</button>
+            <div className="dashboard-loading">
+                <div className="loading-spinner"></div>
+                <p>Loading dashboard...</p>
             </div>
         );
     }
