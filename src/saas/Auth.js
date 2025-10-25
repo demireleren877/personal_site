@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
 import { registerUser, loginUser, reloadUser, loginWithGoogle } from '../firebase/authService';
+import { useAuth } from '../hooks/useAuth';
+import { handleError } from '../utils/errorHandler';
 import EmailVerification from '../components/EmailVerification';
+import LoadingSpinner from '../components/LoadingSpinner';
 import './Auth.css';
 
 const Auth = () => {
+    const { loading: authLoading, error: authError } = useAuth();
     const [isLogin, setIsLogin] = useState(true);
     const [formData, setFormData] = useState({
         name: '',
@@ -14,7 +18,6 @@ const Auth = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [showEmailVerification, setShowEmailVerification] = useState(false);
-    const [user, setUser] = useState(null);
 
     const handleInputChange = (e) => {
         setFormData({
@@ -40,7 +43,6 @@ const Auth = () => {
                 const result = await registerUser(formData.email, formData.password, formData.name);
                 
                 if (result.success) {
-                    setUser(result.user);
                     setShowEmailVerification(true);
                 } else {
                     setError(result.error);
@@ -51,10 +53,9 @@ const Auth = () => {
                 
                 if (result.success) {
                     if (result.user.emailVerified) {
-                        localStorage.setItem('user', JSON.stringify(result.user));
+                        // useAuth hook will handle the authentication state
                         window.location.href = '/dashboard';
                     } else {
-                        setUser(result.user);
                         setShowEmailVerification(true);
                     }
                 } else {
@@ -62,8 +63,8 @@ const Auth = () => {
                 }
             }
         } catch (error) {
-            console.error('Auth error:', error);
-            setError('Bağlantı hatası. Lütfen tekrar deneyin.');
+            const errorInfo = handleError(error, 'Auth form submission');
+            setError(errorInfo.message);
         } finally {
             setLoading(false);
         }
@@ -77,14 +78,14 @@ const Auth = () => {
             const result = await loginWithGoogle();
             
             if (result.success) {
-                localStorage.setItem('user', JSON.stringify(result.user));
+                // useAuth hook will handle the authentication state
                 window.location.href = '/dashboard';
             } else {
                 setError(result.error);
             }
         } catch (error) {
-            console.error('Google login error:', error);
-            setError('Google ile giriş yapılırken hata oluştu.');
+            const errorInfo = handleError(error, 'Google login');
+            setError(errorInfo.message);
         } finally {
             setLoading(false);
         }
@@ -96,17 +97,22 @@ const Auth = () => {
             const result = await reloadUser();
             
             if (result.success && result.user.emailVerified) {
-                localStorage.setItem('user', JSON.stringify(result.user));
+                // useAuth hook will handle the authentication state
                 window.location.href = '/dashboard';
             } else {
                 console.error('Email verification failed:', result.error);
                 setError('Email doğrulama başarısız. Lütfen tekrar deneyin.');
             }
         } catch (error) {
-            console.error('Email verification error:', error);
-            setError('Email doğrulama sırasında hata oluştu.');
+            const errorInfo = handleError(error, 'Email verification');
+            setError(errorInfo.message);
         }
     };
+
+    // Show loading spinner if auth is loading
+    if (authLoading) {
+        return <LoadingSpinner fullscreen text="Kimlik doğrulama yükleniyor..." />;
+    }
 
     // Email verification ekranını göster
     if (showEmailVerification) {
@@ -195,9 +201,9 @@ const Auth = () => {
                         </div>
                     )}
 
-                    {error && (
+                    {(error || authError) && (
                         <div className="error-message">
-                            {error}
+                            {error || authError}
                         </div>
                     )}
 

@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { onAuthStateChange, getCurrentUser } from '../firebase/authService';
+import React from 'react';
+import { useAuth } from '../hooks/useAuth';
+import LoadingSpinner from '../components/LoadingSpinner';
 import Auth from './Auth';
 import Dashboard from './Dashboard';
 import SubdomainSite from './SubdomainSite';
@@ -12,71 +13,18 @@ import Contact from '../components/Contact';
 import './SaasApp.css';
 
 const SaasApp = () => {
-    const [loading, setLoading] = useState(true);
-    const [user, setUser] = useState(null);
-
-    useEffect(() => {
-        // Firebase auth state değişikliklerini dinle
-        const unsubscribe = onAuthStateChange(async (firebaseUser) => {
-            if (firebaseUser) {
-                setUser({
-                    uid: firebaseUser.uid,
-                    email: firebaseUser.email,
-                    displayName: firebaseUser.displayName,
-                    emailVerified: firebaseUser.emailVerified
-                });
-                // localStorage'a kaydet
-                localStorage.setItem('user', JSON.stringify({
-                    uid: firebaseUser.uid,
-                    email: firebaseUser.email,
-                    displayName: firebaseUser.displayName,
-                    emailVerified: firebaseUser.emailVerified
-                }));
-
-                // Firebase kullanıcısını API'ye kaydet (sadece ilk kez)
-                const registrationKey = `firebase_registered_${firebaseUser.uid}`;
-                if (!localStorage.getItem(registrationKey)) {
-                    try {
-                        const response = await fetch('https://personal-site-saas-api.l5819033.workers.dev/api/auth/firebase-register', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                firebaseUid: firebaseUser.uid,
-                                email: firebaseUser.email,
-                                name: firebaseUser.displayName || firebaseUser.email
-                            })
-                        });
-                        
-                        if (response.ok) {
-                            const result = await response.json();
-                            console.log('Firebase user registration:', result.message || 'Success');
-                            localStorage.setItem(registrationKey, 'true');
-                            // Registration tamamlandı event'i dispatch et
-                            window.dispatchEvent(new CustomEvent('firebaseRegistrationComplete', {
-                                detail: { uid: firebaseUser.uid }
-                            }));
-                        }
-                    } catch (error) {
-                        console.log('Firebase user registration error:', error);
-                    }
-                }
-            } else {
-                setUser(null);
-                localStorage.removeItem('user');
-            }
-            setLoading(false);
-        });
-
-        return () => unsubscribe();
-    }, []);
+    const { loading, error, isAuthenticated, logout } = useAuth();
 
     if (loading) {
+        return <LoadingSpinner fullscreen text="Uygulama yükleniyor..." />;
+    }
+
+    if (error) {
         return (
-            <div className="saas-loading">
-                <div className="loading-spinner"></div>
-                <p>Loading...</p>
+            <div className="saas-error">
+                <h2>Hata</h2>
+                <p>{error}</p>
+                <button onClick={logout}>Çıkış Yap</button>
             </div>
         );
     }
@@ -119,7 +67,7 @@ const SaasApp = () => {
 
     // If on dashboard path, check authentication
     if (currentPath === '/dashboard') {
-        if (user && user.emailVerified) {
+        if (isAuthenticated) {
             return <Dashboard />;
         } else {
             // Kullanıcı giriş yapmamış veya email doğrulanmamış
