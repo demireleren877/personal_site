@@ -828,6 +828,7 @@ const SiteBuilder = ({ siteId, onSave }) => {
                                                         <option value="Power BI">Power BI</option>
                                                         <option value="Tableau">Tableau</option>
                                                         <option value="SAS">SAS</option>
+                                                        <option value="SAS EG">SAS EG</option>
                                                         <option value="R">R</option>
                                                         <option value="Java">Java</option>
                                                         <option value="C++">C++</option>

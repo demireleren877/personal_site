@@ -45,6 +45,7 @@ const Skills = ({ competencies: propCompetencies, tools: propTools, languages: p
       'Excel': '/icons/tools/excel-svgrepo-com.svg',
       'Power BI': '/icons/tools/New_Power_BI_Logo.svg',
       'SAS': '/icons/tools/sas-logo-horiz.svg',
+      'SAS EG': '/icons/tools/sas-logo-horiz.svg',
       'SQL': '/icons/tools/sql.svg',
       'Oracle SQL': '/icons/tools/oracle-sql.svg',
       'Flutter': '/icons/tools/flutter-svgrepo-com.svg',
