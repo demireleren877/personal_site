@@ -63,8 +63,25 @@ const Dashboard = () => {
                 return;
             }
 
-            const subdomain = firebaseUser.displayName?.toLowerCase().replace(/\s+/g, '-') || 'user';
-
+            // Get user's sites to find the correct subdomain
+            const sitesResponse = await fetch('https://personal-site-saas-api.l5819033.workers.dev/api/user/sites', {
+                headers: {
+                    'Authorization': `Bearer ${firebaseUser.uid}`
+                }
+            });
+            
+            if (!sitesResponse.ok) {
+                alert('Kullanıcı siteleri alınamadı!');
+                return;
+            }
+            
+            const sites = await sitesResponse.json();
+            if (!sites || sites.length === 0) {
+                alert('Kullanıcının sitesi bulunamadı!');
+                return;
+            }
+            
+            const subdomain = sites[0].subdomain;
             console.log('Saving data for user:', firebaseUser.uid, 'subdomain:', subdomain);
 
             // Save to API

@@ -55,7 +55,29 @@ const SiteBuilder = ({ siteId, onSave }) => {
             }
 
             const user = JSON.parse(userData);
-            const subdomain = user.name?.toLowerCase().replace(/\s+/g, '-') || 'user';
+            
+            // Get user's sites to find the correct subdomain
+            const sitesResponse = await fetch('https://personal-site-saas-api.l5819033.workers.dev/api/user/sites', {
+                headers: {
+                    'Authorization': `Bearer ${user.uid}`
+                }
+            });
+            
+            if (!sitesResponse.ok) {
+                console.error('Failed to fetch user sites');
+                setLoading(false);
+                return;
+            }
+            
+            const sites = await sitesResponse.json();
+            if (!sites || sites.length === 0) {
+                console.error('No sites found for user');
+                setLoading(false);
+                return;
+            }
+            
+            // Use the first site's subdomain
+            const subdomain = sites[0].subdomain;
 
             // Load existing site data from API
             const [heroRes, experiencesRes, educationRes, competenciesRes, toolsRes, languagesRes] = await Promise.all([

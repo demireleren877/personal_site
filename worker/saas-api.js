@@ -6,10 +6,12 @@ export default {
         const method = request.method;
 
         // CORS headers
+        const origin = request.headers.get('Origin');
         const corsHeaders = {
-            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Origin': origin || '*',
             'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
             'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+            'Access-Control-Allow-Credentials': 'true',
         };
 
         // Handle preflight requests
@@ -163,7 +165,7 @@ async function registerUser(request, env, corsHeaders) {
 
 // Firebase user registration
 async function registerFirebaseUser(request, env, corsHeaders) {
-    const { firebaseUid, email, name } = await request.json();
+    const { firebaseUid, email, name, displayName } = await request.json();
 
     // Check if user exists by Firebase UID
     const existingUser = await env.DB.prepare(
@@ -171,30 +173,58 @@ async function registerFirebaseUser(request, env, corsHeaders) {
     ).bind(firebaseUid, email).first();
 
     if (existingUser) {
-        // User already exists, return success with existing user ID
-        return new Response(JSON.stringify({
-            success: true,
-            userId: existingUser.id,
-            message: 'User already exists'
-        }), {
-            status: 200,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+        // User already exists, check if they have a site
+        const existingSite = await env.DB.prepare(
+            'SELECT id FROM user_sites WHERE user_id = ?'
+        ).bind(existingUser.id).first();
+
+        if (existingSite) {
+            // User has a site, return success
+            return new Response(JSON.stringify({
+                success: true,
+                userId: existingUser.id,
+                message: 'User already exists with site'
+            }), {
+                status: 200,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+        } else {
+            // User exists but no site, create one
+            const baseSubdomain = userName.toLowerCase().replace(/\s+/g, '-');
+            const timestamp = Date.now();
+            const subdomain = `${baseSubdomain}-${timestamp}`;
+            
+            await env.DB.prepare(
+                'INSERT INTO user_sites (user_id, subdomain, site_name, site_description, is_published) VALUES (?, ?, ?, ?, ?)'
+            ).bind(existingUser.id, subdomain, `${userName}'s Personal Site`, 'Personal portfolio site', true).run();
+
+            return new Response(JSON.stringify({
+                success: true,
+                userId: existingUser.id,
+                message: 'User exists, site created'
+            }), {
+                status: 200,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+        }
     }
 
+    // Use displayName if available, otherwise use name
+    const userName = displayName || name;
+    
     // Create Firebase user (with dummy password hash for NOT NULL constraint)
     const result = await env.DB.prepare(
         'INSERT INTO users (email, password_hash, firebase_uid, name) VALUES (?, ?, ?, ?)'
-    ).bind(email, 'firebase_user', firebaseUid, name).run();
+    ).bind(email, 'firebase_user', firebaseUid, userName).run();
 
     // Create default site for the user
-    const baseSubdomain = name.toLowerCase().replace(/\s+/g, '-');
+    const baseSubdomain = userName.toLowerCase().replace(/\s+/g, '-');
     const timestamp = Date.now();
     const subdomain = `${baseSubdomain}-${timestamp}`;
     
     await env.DB.prepare(
         'INSERT INTO user_sites (user_id, subdomain, site_name, site_description, is_published) VALUES (?, ?, ?, ?, ?)'
-    ).bind(result.meta.last_row_id, subdomain, `${name}'s Personal Site`, 'Personal portfolio site', true).run();
+    ).bind(result.meta.last_row_id, subdomain, `${userName}'s Personal Site`, 'Personal portfolio site', true).run();
 
     return new Response(JSON.stringify({
         success: true,
@@ -388,18 +418,19 @@ async function updateSiteData(path, request, userId, env, corsHeaders) {
     const pathParts = path.split('/');
     const subdomain = pathParts[3];
 
-    // Get or create site for user
+    // Get user's existing site
     let site = await env.DB.prepare(
-        'SELECT id FROM user_sites WHERE subdomain = ? AND user_id = ?'
-    ).bind(subdomain, userId).first();
+        'SELECT id, subdomain FROM user_sites WHERE user_id = ? ORDER BY created_at DESC LIMIT 1'
+    ).bind(userId).first();
 
     if (!site) {
-        // Create new site for user
-        const result = await env.DB.prepare(
-            'INSERT INTO user_sites (user_id, site_name, subdomain, is_published) VALUES (?, ?, ?, ?)'
-        ).bind(userId, `${subdomain}'s Portfolio`, subdomain, true).run();
-
-        site = { id: result.meta.last_row_id };
+        return new Response(JSON.stringify({ 
+            error: 'No site found for user. Please create a site first.',
+            userId: userId 
+        }), {
+            status: 404,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
     }
 
     const data = await request.json();

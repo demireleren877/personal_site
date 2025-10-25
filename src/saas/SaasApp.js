@@ -45,7 +45,8 @@ const SaasApp = () => {
                             body: JSON.stringify({
                                 firebaseUid: firebaseUser.uid,
                                 email: firebaseUser.email,
-                                name: firebaseUser.displayName || firebaseUser.email
+                                name: firebaseUser.displayName || firebaseUser.email,
+                                displayName: firebaseUser.displayName
                             })
                         });
                         
