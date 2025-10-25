@@ -4,7 +4,8 @@
 CREATE TABLE users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   email TEXT UNIQUE NOT NULL,
-  password_hash TEXT NOT NULL,
+  password_hash TEXT, -- Optional for Firebase users
+  firebase_uid TEXT UNIQUE, -- Firebase UID for Firebase authentication
   name TEXT NOT NULL,
   avatar_url TEXT,
   subscription_plan TEXT DEFAULT 'free', -- free, pro, enterprise

@@ -31,9 +31,15 @@ const SiteBuilder = ({ siteId, onSave }) => {
         tools: true,
         languages: true
     });
+        const [sites, setSites] = useState([]);
+        const [showDomainModal, setShowDomainModal] = useState(false);
+        const [selectedSite, setSelectedSite] = useState(null);
+        const [customDomain, setCustomDomain] = useState('');
+        const [domainLoading, setDomainLoading] = useState(false);
 
     useEffect(() => {
         loadSiteData();
+        fetchUserSites();
     }, [siteId]);
 
     const loadSiteData = async () => {
@@ -105,6 +111,110 @@ const SiteBuilder = ({ siteId, onSave }) => {
         }
     };
 
+    const fetchUserSites = async () => {
+        try {
+            const userData = localStorage.getItem('user');
+            if (!userData) return;
+
+            const user = JSON.parse(userData);
+            const response = await fetch('https://personal-site-saas-api.l5819033.workers.dev/api/user/sites', {
+                headers: {
+                    'Authorization': `Bearer ${user.uid}`
+                }
+            });
+
+            if (response.ok) {
+                const sitesData = await response.json();
+                setSites(sitesData);
+            }
+        } catch (error) {
+            console.error('Error fetching user sites:', error);
+        }
+    };
+
+        const handleAddCustomDomain = (site) => {
+            setSelectedSite(site);
+            // Eğer domain varsa, sadece subdomain kısmını göster
+            if (site.domain) {
+                const subdomain = site.domain.replace('.erendemirel.com.tr', '');
+                setCustomDomain(subdomain);
+            } else {
+                setCustomDomain('');
+            }
+            setShowDomainModal(true);
+        };
+
+        const handleSaveCustomDomain = async () => {
+            // Spam koruması - loading durumunda işlem yapma
+            if (domainLoading) {
+                return;
+            }
+
+            try {
+                setDomainLoading(true);
+                
+                const userData = localStorage.getItem('user');
+                if (!userData || !selectedSite) {
+                    alert('Lütfen önce giriş yapın!');
+                    setDomainLoading(false);
+                    return;
+                }
+
+                const user = JSON.parse(userData);
+                const fullDomain = `${customDomain}.erendemirel.com.tr`;
+                
+                // Aynı domain zaten eklenmiş mi kontrol et
+                if (selectedSite.domain === fullDomain) {
+                    alert('Bu domain zaten eklenmiş!');
+                    setDomainLoading(false);
+                    return;
+                }
+
+                const response = await fetch('https://personal-site-saas-api.l5819033.workers.dev/api/user/domain', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${user.uid}`
+                    },
+                    body: JSON.stringify({
+                        site_id: selectedSite.id,
+                        custom_domain: fullDomain
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    
+                    if (result.message === 'Domain already exists') {
+                        alert('Bu domain zaten kullanımda! Lütfen farklı bir domain seçin.');
+                    } else if (result.message === 'Domain updated successfully') {
+                        alert('Domain başarıyla güncellendi! Eski domain kaldırıldı ve yeni domain eklendi.');
+                        setShowDomainModal(false);
+                        fetchUserSites(); // Refresh sites list
+                    } else {
+                        alert('Custom domain başarıyla eklendi!');
+                        setShowDomainModal(false);
+                        fetchUserSites(); // Refresh sites list
+                    }
+                } else {
+                    const error = await response.json();
+                    
+                    if (error.error && error.error.includes('already exists')) {
+                        alert('Bu domain zaten kullanımda! Lütfen farklı bir domain seçin.');
+                    } else if (error.error && error.error.includes('invalid TLD')) {
+                        alert('Geçersiz domain formatı! Lütfen sadece subdomain kısmını girin (örn: ornek).');
+                    } else {
+                        alert(`Hata: ${error.error || 'Domain eklenemedi'}`);
+                    }
+                }
+            } catch (error) {
+                console.error('Error adding custom domain:', error);
+                alert('Domain eklenirken hata oluştu!');
+            } finally {
+                setDomainLoading(false);
+            }
+        };
+
     const handleSave = async () => {
         try {
             setLoading(true);
@@ -133,9 +243,16 @@ const SiteBuilder = ({ siteId, onSave }) => {
                 }
             }
 
-            console.log('Saving site data:', siteData);
-            console.log('Experiences:', siteData.experiences);
-            await onSave(siteData);
+            // Undefined değerleri temizle
+            const cleanData = JSON.parse(JSON.stringify(siteData, (key, value) => {
+                if (value === undefined) return null;
+                if (value === '') return null;
+                return value;
+            }));
+            
+            console.log('Saving site data:', cleanData);
+            console.log('Experiences:', cleanData.experiences);
+            await onSave(cleanData);
             // Kaydetten sonra sunucudaki güncel veriyi yeniden yükle
             await loadSiteData();
         } catch (error) {
@@ -341,6 +458,12 @@ const SiteBuilder = ({ siteId, onSave }) => {
                             onClick={() => setActiveSection('contact')}
                         >
                             Contact
+                        </button>
+                        <button
+                            className={activeSection === 'domains' ? 'active' : ''}
+                            onClick={() => setActiveSection('domains')}
+                        >
+                            Domainleriniz
                         </button>
                     </nav>
                 </div>
@@ -979,8 +1102,126 @@ const SiteBuilder = ({ siteId, onSave }) => {
                             </div>
                         </div>
                     )}
+
+                    {activeSection === 'domains' && (
+                        <div className="section-editor">
+                            <h3>Domainleriniz</h3>
+                            <p>Burada sitelerinizi ve domain ayarlarınızı yönetebilirsiniz.</p>
+                            <div className="domains-info">
+                                <div className="sites-list">
+                                    {sites.map((site) => (
+                                        <div key={site.id} className="site-card">
+                                            <div className="site-info">
+                                                <h4>{site.site_name}</h4>
+                                                {site.domain && (
+                                                    <p>Custom Domain: {site.domain}</p>
+                                                )}
+                                                <p>Status: {site.is_published ? 'Yayında' : 'Taslak'}</p>
+                                            </div>
+                                            <div className="site-actions">
+                                                <button 
+                                                    className="domain-btn"
+                                                    onClick={() => handleAddCustomDomain(site)}
+                                                >
+                                                    {site.domain ? 'Domain Değiştir' : 'Custom Domain Ekle'}
+                                                </button>
+                                                <a
+                                                    href={site.domain ? `https://${site.domain}` : `https://${site.subdomain}.yourdomain.com`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="view-site-btn"
+                                                >
+                                                    Siteyi Görüntüle
+                                                </a>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
+
+            {/* Domain Modal */}
+            {showDomainModal && (
+                <div className="modal-overlay" onClick={domainLoading ? undefined : () => setShowDomainModal(false)}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3>{selectedSite?.domain ? 'Domain Değiştir' : 'Custom Domain Ekle'}</h3>
+                            {!domainLoading && (
+                                <button 
+                                    className="modal-close-btn"
+                                    onClick={() => setShowDomainModal(false)}
+                                >
+                                    ×
+                                </button>
+                            )}
+                        </div>
+                        <p>Site: {selectedSite?.site_name}</p>
+                        {selectedSite?.domain && (
+                            <p className="current-domain">Mevcut Domain: <strong>{selectedSite.domain}</strong></p>
+                        )}
+                        
+                        <div className="domain-info">
+                            <h4>Domain Bilgileri</h4>
+                            <p>Kendi domain'inizi ekleyerek sitenizi daha profesyonel hale getirin.</p>
+                            <ul>
+                                <li>Domain'iniz Cloudflare'de yönetilir</li>
+                                <li>SSL sertifikası otomatik olarak eklenir</li>
+                                <li>DNS ayarları otomatik yapılandırılır</li>
+                                {selectedSite?.domain && (
+                                    <li><strong>Not:</strong> Eski domain otomatik olarak kaldırılacak</li>
+                                )}
+                            </ul>
+                        </div>
+
+                        <div className="form-group">
+                            <label htmlFor="customDomain">Domain Adı:</label>
+                            <div className="domain-input-container">
+                                <input
+                                    type="text"
+                                    id="customDomain"
+                                    value={customDomain}
+                                    onChange={(e) => setCustomDomain(e.target.value)}
+                                    placeholder="ornek"
+                                    className="domain-input"
+                                    disabled={domainLoading}
+                                />
+                                <span className="domain-suffix">.erendemirel.com.tr</span>
+                            </div>
+                            <p className="domain-preview">
+                                Tam domain: <strong>{customDomain || 'ornek'}.erendemirel.com.tr</strong>
+                            </p>
+                        </div>
+
+                        <div className="modal-actions">
+                            <button
+                                className="cancel-btn"
+                                onClick={() => setShowDomainModal(false)}
+                                disabled={domainLoading}
+                            >
+                                İptal
+                            </button>
+                            <button
+                                className="save-btn"
+                                onClick={handleSaveCustomDomain}
+                                disabled={!customDomain.trim() || domainLoading}
+                            >
+                                {domainLoading ? (
+                                    <>
+                                        <div className="loading-spinner-small"></div>
+                                        {selectedSite?.domain ? 'Güncelleniyor...' : 'Ekleniyor...'}
+                                    </>
+                                ) : (
+                                    selectedSite?.domain ? 'Domain Güncelle' : 'Domain Ekle'
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

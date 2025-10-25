@@ -18,7 +18,16 @@ export default {
         }
 
         try {
-            // Authentication middleware
+            // Route handling (no auth required)
+            if (path === '/api/auth/register' && method === 'POST') {
+                return await registerUser(request, env, corsHeaders);
+            } else if (path === '/api/auth/login' && method === 'POST') {
+                return await loginUser(request, env, corsHeaders);
+            } else if (path === '/api/auth/firebase-register' && method === 'POST') {
+                return await registerFirebaseUser(request, env, corsHeaders);
+            }
+
+            // Authentication middleware for protected routes
             const authResult = await authenticateUser(request, env);
             if (!authResult.success && path.startsWith('/api/user/')) {
                 return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -27,12 +36,8 @@ export default {
                 });
             }
 
-            // Route handling
-            if (path === '/api/auth/register' && method === 'POST') {
-                return await registerUser(request, env, corsHeaders);
-            } else if (path === '/api/auth/login' && method === 'POST') {
-                return await loginUser(request, env, corsHeaders);
-            } else if (path === '/api/user/profile' && method === 'GET') {
+            // Protected routes
+            if (path === '/api/user/profile' && method === 'GET') {
                 return await getUserProfile(authResult.userId, env, corsHeaders);
             } else if (path === '/api/user/sites' && method === 'GET') {
                 return await getUserSites(authResult.userId, env, corsHeaders);
@@ -86,8 +91,28 @@ async function authenticateUser(request, env) {
     }
 
     const token = authHeader.substring(7);
-    const userId = parseInt(token);
+    
+    // Firebase UID'yi kontrol et (string format - 28 karakter, alfanumerik)
+    if (token.length === 28 && /^[A-Za-z0-9]+$/.test(token)) {
+        // Firebase UID formatı
+        console.log('Authenticating Firebase UID:', token);
+        const user = await env.DB.prepare(
+            'SELECT id FROM users WHERE firebase_uid = ?'
+        ).bind(token).first();
 
+        console.log('User found:', user);
+
+        if (!user) {
+            console.log('No user found for Firebase UID:', token);
+            return { success: false };
+        }
+
+        console.log('Authentication successful for user ID:', user.id);
+        return { success: true, userId: user.id, firebaseUid: token };
+    }
+    
+    // Eski sistem için integer ID kontrolü
+    const userId = parseInt(token);
     if (!userId || isNaN(userId)) {
         return { success: false };
     }
@@ -127,6 +152,49 @@ async function registerUser(request, env, corsHeaders) {
     const result = await env.DB.prepare(
         'INSERT INTO users (email, password_hash, name) VALUES (?, ?, ?)'
     ).bind(email, passwordHash, name).run();
+
+    return new Response(JSON.stringify({
+        success: true,
+        userId: result.meta.last_row_id
+    }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+}
+
+// Firebase user registration
+async function registerFirebaseUser(request, env, corsHeaders) {
+    const { firebaseUid, email, name } = await request.json();
+
+    // Check if user exists by Firebase UID
+    const existingUser = await env.DB.prepare(
+        'SELECT id FROM users WHERE firebase_uid = ? OR email = ?'
+    ).bind(firebaseUid, email).first();
+
+    if (existingUser) {
+        // User already exists, return success with existing user ID
+        return new Response(JSON.stringify({
+            success: true,
+            userId: existingUser.id,
+            message: 'User already exists'
+        }), {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+    }
+
+    // Create Firebase user (with dummy password hash for NOT NULL constraint)
+    const result = await env.DB.prepare(
+        'INSERT INTO users (email, password_hash, firebase_uid, name) VALUES (?, ?, ?, ?)'
+    ).bind(email, 'firebase_user', firebaseUid, name).run();
+
+    // Create default site for the user
+    const baseSubdomain = name.toLowerCase().replace(/\s+/g, '-');
+    const timestamp = Date.now();
+    const subdomain = `${baseSubdomain}-${timestamp}`;
+    
+    await env.DB.prepare(
+        'INSERT INTO user_sites (user_id, subdomain, site_name, site_description, is_published) VALUES (?, ?, ?, ?, ?)'
+    ).bind(result.meta.last_row_id, subdomain, `${name}'s Personal Site`, 'Personal portfolio site', true).run();
 
     return new Response(JSON.stringify({
         success: true,
@@ -336,9 +404,16 @@ async function updateSiteData(path, request, userId, env, corsHeaders) {
 
     const data = await request.json();
 
+    // Undefined değerleri temizle
+    const cleanData = JSON.parse(JSON.stringify(data, (key, value) => {
+        if (value === undefined) return null;
+        if (value === '') return null;
+        return value;
+    }));
+
     try {
         // Update hero data
-        if (data.hero) {
+        if (cleanData.hero) {
             // First, delete existing hero data for this site
             await env.DB.prepare(
                 'DELETE FROM site_hero_data WHERE site_id = ?'
@@ -349,20 +424,20 @@ async function updateSiteData(path, request, userId, env, corsHeaders) {
                 'INSERT INTO site_hero_data (site_id, name, title, description, birth_year, location, current_job, github_url, linkedin_url, cv_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
             ).bind(
                 site.id,
-                data.hero.name || '',
-                data.hero.title || '',
-                data.hero.description || '',
-                data.hero.birth_year || null,
-                data.hero.location || '',
-                data.hero.current_job || '',
-                data.hero.github_url || '',
-                data.hero.linkedin_url || '',
-                data.hero.cv_url || ''
+                cleanData.hero.name || '',
+                cleanData.hero.title || '',
+                cleanData.hero.description || '',
+                cleanData.hero.birth_year || null,
+                cleanData.hero.location || '',
+                cleanData.hero.current_job || '',
+                cleanData.hero.github_url || '',
+                cleanData.hero.linkedin_url || '',
+                cleanData.hero.cv_url || ''
             ).run();
         }
 
         // Update about data
-        if (data.about) {
+        if (cleanData.about) {
             // First, delete existing about data for this site
             await env.DB.prepare(
                 'DELETE FROM site_about_data WHERE site_id = ?'
@@ -373,20 +448,20 @@ async function updateSiteData(path, request, userId, env, corsHeaders) {
                 'INSERT INTO site_about_data (site_id, title, description) VALUES (?, ?, ?)'
             ).bind(
                 site.id,
-                data.about.title || '',
-                data.about.description || ''
+                cleanData.about.title || '',
+                cleanData.about.description || ''
             ).run();
         }
 
         // Update experiences
-        if (data.experiences) {
+        if (cleanData.experiences) {
             // Clear existing experiences and their achievements
             await env.DB.prepare('DELETE FROM site_experience_achievements WHERE experience_id IN (SELECT id FROM site_experiences WHERE site_id = ?)').bind(site.id).run();
             await env.DB.prepare('DELETE FROM site_experiences WHERE site_id = ?').bind(site.id).run();
 
             // Insert new experiences
-            for (let i = 0; i < data.experiences.length; i++) {
-                const exp = data.experiences[i];
+            for (let i = 0; i < cleanData.experiences.length; i++) {
+                const exp = cleanData.experiences[i];
                 console.log('Processing experience:', exp);
                 const endDate = exp.end_date || '';
                 console.log('end_date:', endDate);
@@ -422,14 +497,14 @@ async function updateSiteData(path, request, userId, env, corsHeaders) {
         }
 
         // Update education
-        if (data.education) {
+        if (cleanData.education) {
             // Clear existing education and achievements
             await env.DB.prepare('DELETE FROM site_education_achievements WHERE education_id IN (SELECT id FROM site_education WHERE site_id = ?)').bind(site.id).run();
             await env.DB.prepare('DELETE FROM site_education WHERE site_id = ?').bind(site.id).run();
 
             // Insert new education
-            for (let i = 0; i < data.education.length; i++) {
-                const edu = data.education[i];
+            for (let i = 0; i < cleanData.education.length; i++) {
+                const edu = cleanData.education[i];
                 const endDate = edu.end_date || '';
                 const isCurrent = !endDate || endDate === '';
                 
@@ -463,13 +538,13 @@ async function updateSiteData(path, request, userId, env, corsHeaders) {
         }
 
         // Update competencies
-        if (data.competencies) {
+        if (cleanData.competencies) {
             // Clear existing competencies
             await env.DB.prepare('DELETE FROM site_competencies WHERE site_id = ?').bind(site.id).run();
 
             // Insert new competencies
-            for (let i = 0; i < data.competencies.length; i++) {
-                const comp = data.competencies[i];
+            for (let i = 0; i < cleanData.competencies.length; i++) {
+                const comp = cleanData.competencies[i];
                 // Use custom name if OTHER is selected
                 const displayName = (comp.name === 'OTHER' && comp.customName) ? comp.customName : comp.name;
                 
@@ -485,13 +560,13 @@ async function updateSiteData(path, request, userId, env, corsHeaders) {
         }
 
         // Update tools
-        if (data.tools) {
+        if (cleanData.tools) {
             // Clear existing tools
             await env.DB.prepare('DELETE FROM site_tools WHERE site_id = ?').bind(site.id).run();
 
             // Insert new tools
-            for (let i = 0; i < data.tools.length; i++) {
-                const tool = data.tools[i];
+            for (let i = 0; i < cleanData.tools.length; i++) {
+                const tool = cleanData.tools[i];
                 // Use custom name if OTHER is selected
                 const displayName = (tool.name === 'OTHER' && tool.customName) ? tool.customName : tool.name;
                 
@@ -508,13 +583,13 @@ async function updateSiteData(path, request, userId, env, corsHeaders) {
         }
 
         // Update languages
-        if (data.languages) {
+        if (cleanData.languages) {
             // Clear existing languages
             await env.DB.prepare('DELETE FROM site_languages WHERE site_id = ?').bind(site.id).run();
 
             // Insert new languages
-            for (let i = 0; i < data.languages.length; i++) {
-                const lang = data.languages[i];
+            for (let i = 0; i < cleanData.languages.length; i++) {
+                const lang = cleanData.languages[i];
                 // Use custom name if OTHER is selected
                 const displayName = (lang.name === 'OTHER' && lang.customName) ? lang.customName : lang.name;
                 
@@ -780,18 +855,136 @@ async function addDomainToPages(domain, env) {
     return result;
 }
 
+// Remove domain from Cloudflare Pages
+async function removeDomainFromPages(domain, env) {
+    const accountId = env.CLOUDFLARE_ACCOUNT_ID;
+    const projectName = env.CLOUDFLARE_PROJECT_NAME;
+    const apiToken = env.CLOUDFLARE_API_TOKEN;
+
+    if (!apiToken) {
+        throw new Error('Cloudflare API token not configured');
+    }
+
+    console.log('Removing domain from Pages:', domain);
+    console.log('Account ID:', accountId);
+    console.log('Project Name:', projectName);
+
+    const response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/pages/projects/${projectName}/domains/${domain}`, {
+        method: 'DELETE',
+        headers: {
+            'Authorization': `Bearer ${apiToken}`,
+            'Content-Type': 'application/json'
+        }
+    });
+
+    console.log('Pages API response status:', response.status);
+
+    if (!response.ok) {
+        const error = await response.json();
+        console.log('Pages API error:', error);
+        throw new Error(`Pages API error: ${error.errors?.[0]?.message || 'Unknown error'}`);
+    }
+
+    const result = await response.json();
+    console.log('Domain removed from Pages successfully:', result);
+    return result;
+}
+
+// Remove DNS record from Cloudflare
+async function removeCloudflareDNSRecord(domain, env) {
+    const zoneId = env.CLOUDFLARE_ZONE_ID;
+    const apiToken = env.CLOUDFLARE_API_TOKEN;
+
+    if (!apiToken || !zoneId) {
+        throw new Error('Cloudflare API token or Zone ID not configured');
+    }
+
+    console.log('Removing DNS record for domain:', domain);
+    console.log('Zone ID:', zoneId);
+    console.log('API Token exists:', !!apiToken);
+    console.log('API Token length:', apiToken.length);
+
+    // First, get all DNS records to find the one to delete
+    const listResponse = await fetch(`https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records?name=${domain}`, {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${apiToken}`,
+            'Content-Type': 'application/json'
+        }
+    });
+
+    if (!listResponse.ok) {
+        const error = await listResponse.json();
+        console.log('Cloudflare API error (list):', error);
+        throw new Error(`Cloudflare API error: ${error.errors?.[0]?.message || 'Unknown error'}`);
+    }
+
+    const listResult = await listResponse.json();
+    console.log('DNS records found:', listResult.result.length);
+
+    // Delete each matching DNS record
+    for (const record of listResult.result) {
+        if (record.name === domain) {
+            console.log('Deleting DNS record:', record.id, record.name);
+            
+            const deleteResponse = await fetch(`https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records/${record.id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${apiToken}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!deleteResponse.ok) {
+                const error = await deleteResponse.json();
+                console.log('Cloudflare API error (delete):', error);
+                throw new Error(`Cloudflare API error: ${error.errors?.[0]?.message || 'Unknown error'}`);
+            }
+
+            const deleteResult = await deleteResponse.json();
+            console.log('DNS record deleted successfully:', deleteResult);
+        }
+    }
+
+    return listResult;
+}
+
 // Add custom domain to existing site
 async function addCustomDomain(request, userId, env, corsHeaders) {
     const { site_id, custom_domain } = await request.json();
 
     // Verify user owns the site
     const site = await env.DB.prepare(
-        'SELECT id FROM user_sites WHERE id = ? AND user_id = ?'
+        'SELECT id, domain FROM user_sites WHERE id = ? AND user_id = ?'
     ).bind(site_id, userId).first();
 
     if (!site) {
         return new Response(JSON.stringify({ error: 'Site not found or access denied' }), {
             status: 404,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+    }
+
+    // Check if the same domain is already set
+    if (site.domain === custom_domain) {
+        return new Response(JSON.stringify({
+            success: true,
+            message: 'Domain already exists'
+        }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+    }
+
+    // Check if domain is already used by another site
+    const existingDomain = await env.DB.prepare(
+        'SELECT id FROM user_sites WHERE domain = ? AND id != ?'
+    ).bind(custom_domain, site_id).first();
+
+    if (existingDomain) {
+        return new Response(JSON.stringify({
+            error: 'This domain is already in use by another site'
+        }), {
+            status: 400,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
     }
@@ -803,15 +996,39 @@ async function addCustomDomain(request, userId, env, corsHeaders) {
 
     // Create Cloudflare DNS record
     try {
+        // If there's an existing domain, remove it from Pages and DNS first
+        if (site.domain) {
+            try {
+                // Remove from Pages
+                await removeDomainFromPages(site.domain, env);
+                console.log('Removed old domain from Pages:', site.domain);
+                
+                // Remove DNS record
+                await removeCloudflareDNSRecord(site.domain, env);
+                console.log('Removed old DNS record:', site.domain);
+            } catch (error) {
+                console.log('Warning: Could not remove old domain/DNS:', error.message);
+                // Continue with new domain creation even if old domain removal fails
+            }
+        }
+
+        // Create new DNS record
         await createCloudflareDNSRecord(custom_domain, env);
 
+        const message = site.domain ? 'Domain updated successfully' : 'Custom domain added successfully';
+        
         return new Response(JSON.stringify({
             success: true,
-            message: 'Custom domain added successfully'
+            message: message
         }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
     } catch (error) {
+        // If DNS creation fails, rollback the database change
+        await env.DB.prepare(
+            'UPDATE user_sites SET domain = ? WHERE id = ?'
+        ).bind(site.domain, site_id).run();
+
         return new Response(JSON.stringify({
             error: 'Failed to create DNS record',
             details: error.message

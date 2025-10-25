@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { onAuthStateChange, getCurrentUser } from '../firebase/authService';
 import Auth from './Auth';
 import Dashboard from './Dashboard';
 import SubdomainSite from './SubdomainSite';
@@ -12,14 +13,64 @@ import './SaasApp.css';
 
 const SaasApp = () => {
     const [loading, setLoading] = useState(true);
+    const [user, setUser] = useState(null);
 
     useEffect(() => {
-        checkAuthStatus();
-    }, []);
+        // Firebase auth state değişikliklerini dinle
+        const unsubscribe = onAuthStateChange(async (firebaseUser) => {
+            if (firebaseUser) {
+                setUser({
+                    uid: firebaseUser.uid,
+                    email: firebaseUser.email,
+                    displayName: firebaseUser.displayName,
+                    emailVerified: firebaseUser.emailVerified
+                });
+                // localStorage'a kaydet
+                localStorage.setItem('user', JSON.stringify({
+                    uid: firebaseUser.uid,
+                    email: firebaseUser.email,
+                    displayName: firebaseUser.displayName,
+                    emailVerified: firebaseUser.emailVerified
+                }));
 
-    const checkAuthStatus = () => {
-        setLoading(false);
-    };
+                // Firebase kullanıcısını API'ye kaydet (sadece ilk kez)
+                const registrationKey = `firebase_registered_${firebaseUser.uid}`;
+                if (!localStorage.getItem(registrationKey)) {
+                    try {
+                        const response = await fetch('https://personal-site-saas-api.l5819033.workers.dev/api/auth/firebase-register', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                firebaseUid: firebaseUser.uid,
+                                email: firebaseUser.email,
+                                name: firebaseUser.displayName || firebaseUser.email
+                            })
+                        });
+                        
+                        if (response.ok) {
+                            const result = await response.json();
+                            console.log('Firebase user registration:', result.message || 'Success');
+                            localStorage.setItem(registrationKey, 'true');
+                            // Registration tamamlandı event'i dispatch et
+                            window.dispatchEvent(new CustomEvent('firebaseRegistrationComplete', {
+                                detail: { uid: firebaseUser.uid }
+                            }));
+                        }
+                    } catch (error) {
+                        console.log('Firebase user registration error:', error);
+                    }
+                }
+            } else {
+                setUser(null);
+                localStorage.removeItem('user');
+            }
+            setLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, []);
 
     if (loading) {
         return (
@@ -66,9 +117,14 @@ const SaasApp = () => {
     // Check current path
     const currentPath = window.location.pathname;
 
-    // If on dashboard path, show dashboard
+    // If on dashboard path, check authentication
     if (currentPath === '/dashboard') {
-        return <Dashboard />;
+        if (user && user.emailVerified) {
+            return <Dashboard />;
+        } else {
+            // Kullanıcı giriş yapmamış veya email doğrulanmamış
+            return <Auth />;
+        }
     }
 
     // If on auth path, show auth
