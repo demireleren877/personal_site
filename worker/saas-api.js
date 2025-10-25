@@ -224,11 +224,9 @@ async function registerFirebaseUser(request, env, corsHeaders) {
             });
         }
 
-        // Generate unique subdomain
+        // Generate simple subdomain based on name
         const baseSubdomain = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-        const timestamp = Date.now();
-        const randomSuffix = Math.random().toString(36).substring(2, 8);
-        const subdomain = `${baseSubdomain}-${timestamp}-${randomSuffix}`;
+        const subdomain = baseSubdomain;
 
         // Prepare user insertion
         const userInsert = env.DB.prepare(
@@ -406,8 +404,9 @@ async function getSiteData(path, env, corsHeaders) {
     ).bind(subdomain).first();
 
     if (!site) {
-        return new Response(JSON.stringify({ error: 'Site not found' }), {
-            status: 404,
+        // Return default empty data instead of 404
+        return new Response(JSON.stringify([]), {
+            status: 200,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
     }
