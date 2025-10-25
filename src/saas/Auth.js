@@ -14,7 +14,6 @@ const Auth = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [showEmailVerification, setShowEmailVerification] = useState(false);
-    const [user, setUser] = useState(null);
 
     const handleInputChange = (e) => {
         setFormData({
@@ -40,7 +39,6 @@ const Auth = () => {
                 const result = await registerUser(formData.email, formData.password, formData.name);
                 
                 if (result.success) {
-                    setUser(result.user);
                     setShowEmailVerification(true);
                 } else {
                     setError(result.error);
@@ -54,7 +52,6 @@ const Auth = () => {
                         localStorage.setItem('user', JSON.stringify(result.user));
                         window.location.href = '/dashboard';
                     } else {
-                        setUser(result.user);
                         setShowEmailVerification(true);
                     }
                 } else {

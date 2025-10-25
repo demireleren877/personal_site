@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { onAuthStateChange, getCurrentUser } from '../firebase/authService';
+import { onAuthStateChange } from '../firebase/authService';
 import Auth from './Auth';
 import Dashboard from './Dashboard';
 import SubdomainSite from './SubdomainSite';
